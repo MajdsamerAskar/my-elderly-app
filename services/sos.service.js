@@ -40,27 +40,47 @@ export async function logSOSEvent(elderlyUserId) {
 
 // ─── Trigger Full SOS ─────────────────────────────────────────────────────────
 export async function triggerSOS(elderlyUserId) {
-  // 1. Log SOS event first
-  await logSOSEvent(elderlyUserId)
+ 
+  // We don't await this because a failed log shouldn't stop an emergency call.
+  logSOSEvent(elderlyUserId).catch(err => console.error("SOS Log failed:", err));
+  let caregiver = null;
+  // 2. Safely try to get the caregiver
+  try {
+    caregiver = await getCaregiverPhone(elderlyUserId);
+  } catch (error) {
+    // If the database or network fails, we catch the error, 
+    // leave caregiver as null, and let the code fall back to 911.
+    console.error("Failed to fetch caregiver, defaulting to 911:", error);
+  }
 
-  // 2. Try to get caregiver
-  const caregiver = await getCaregiverPhone(elderlyUserId)
+  // Use standard 'tel:' so it works on both iOS and Android
+  const callPrefix = 'tel:';
 
   if (caregiver && caregiver.phone_number) {
-    // Call caregiver
-    await Linking.openURL(`telprompt:${caregiver.phone_number}`)
-    return {
-      calledNumber: caregiver.phone_number,
-      calledName: caregiver.first_name,
-      type: 'caregiver',
+    try {
+      await Linking.openURL(`${callPrefix}${caregiver.phone_number}`);
+      return {
+        calledNumber: caregiver.phone_number,
+        calledName: caregiver.first_name,
+        type: 'caregiver',
+      };
+    } catch (error) {
+      console.error("Failed to open dialer for caregiver", error);
+    
     }
-  } else {
-    // No caregiver linked — call 911
-    await Linking.openURL(`telprompt:911`)
+  } 
+  
+ 
+  try {
+    await Linking.openURL(`${callPrefix}911`);
     return {
       calledNumber: '911',
       calledName: 'Emergency Services',
       type: 'emergency',
-    }
+    };
+  } catch (error) {
+    console.error("CRITICAL: Failed to open dialer for 911", error);
+    
+    return null; 
   }
 }

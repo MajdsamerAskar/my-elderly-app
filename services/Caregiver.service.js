@@ -196,6 +196,7 @@ export async function respondToLinkRequest(linkId, accept) {
   const { error } = await supabase
     .from('caregiver_elderly_links')
     .update({
+      status: accept ? 'active' : 'declined',
       can_view_location: accept,
       can_view_biometrics: accept,
       can_view_medications: accept,

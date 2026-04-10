@@ -43,15 +43,12 @@ export default function ElderlyLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="  pending-requests" 
-        options={{ 
-          title: 'Pending', 
-          tabBarIcon: ({ color }) => <Ionicons name="link" size={28} color={color} /> 
-        }} 
+        name="Pendingrequests" 
+        options={{
+          title: 'Pending Requests',
+          tabBarIcon: ({ color }) => <Ionicons name="notifications" size={28} color={color} />
+        }}
       />
-      
-      {/* Hidden from the bottom tab bar but still accessible via routing */}
-      <Tabs.Screen name="link-requests" options={{ href: null }} />
     </Tabs>
   );
 }

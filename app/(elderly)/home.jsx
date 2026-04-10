@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback , useRef } from 'react'
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import { Ionicons } from '@expo/vector-icons'
 import { getCurrentUser } from '../../services/auth.service'
 import { triggerSOS } from '../../services/sos.service'
 import { getTodayMedications } from '../../services/medications.service'
+import { updateMyLocation } from '../../services/location.service'
+import { checkBreachAndNotify } from '../../services/geofence.service'
+import { supabase } from '../../lib/supabase'
 
 const COLORS = {
   primary: '#2D6A4F',
@@ -34,10 +37,48 @@ export default function ElderlyHome() {
   const [loading, setLoading] = useState(true)
   const [sosLoading, setSosLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const intervalRef = useRef(null)
 
   useEffect(() => {
     loadData()
   }, [])
+  useEffect(() => {
+  const startTracking = async () => {
+    const currentUser = await getCurrentUser()
+    if (!currentUser) return
+
+    const tick = async () => {
+      try {
+        const coords = await updateMyLocation(currentUser.user_id)
+
+        const { data: link } = await supabase
+          .from('caregiver_elderly_links')
+          .select('caregiver_user_id')
+          .eq('elderly_user_id', currentUser.user_id)
+          .eq('status', 'active')
+          .limit(1)
+          .single()
+
+        if (link) {
+          await checkBreachAndNotify({
+            elderlyUserId: currentUser.user_id,
+            caregiverId: link.caregiver_user_id,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          })
+        }
+      } catch (e) {
+        console.warn('Location tick error:', e.message)
+      }
+    }
+
+    tick()
+    intervalRef.current = setInterval(tick, 60_000)
+  }
+
+  startTracking()
+  return () => clearInterval(intervalRef.current)
+}, [])
 
   const loadData = async () => {
     try {

@@ -36,6 +36,7 @@ export default function CaregiverLayout() {
         name="medications" 
         options={{ 
           title: 'Meds', 
+
           tabBarIcon: ({ color }) => <Ionicons name="medkit" size={24} color={color} /> 
         }} 
       />
@@ -43,16 +44,19 @@ export default function CaregiverLayout() {
         name="profile" 
         options={{ 
           title: 'Profile', 
+  
           tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} /> 
         }} 
       />
-      
-      {/* Hidden from the bottom tab bar but still accessible via routing */}
-      <Tabs.Screen name="link-elderly"
-       options={{ 
-        title: 'Link Elderly',
-            tabBarIcon: ({ color }) => <Ionicons name="link" size={24} color={color} />,
- }} />
+  <Tabs.Screen 
+  name="SearchElderly"
+  options={{ 
+    title: 'Search Elderly',
+    href: null,
+    tabBarIcon: ({ color }) => <Ionicons name="search-outline" size={22} color={color} />,
+  }} 
+/>
+
     </Tabs>
   );
 }

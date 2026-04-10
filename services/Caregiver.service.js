@@ -192,12 +192,15 @@ export async function getPendingRequests(elderlyUserId) {
 }
 
 // ─── Accept or Decline Link Request ──────────────────────────────────────────
-export async function respondToLinkRequest(linkId, accept, expoPushToken) {
+export async function respondToLinkRequest(linkId, accept) {
   const { error } = await supabase
     .from('caregiver_elderly_links')
     .update({
-      status: accept ? 'active' : 'declined',
-      expo_push_token: accept ? expoPushToken : null, // ✅ save token on accept
+      can_view_location: accept,
+      can_view_biometrics: accept,
+      can_view_medications: accept,
+      authorized_at: accept ? new Date().toISOString() : null,
+      revoked_at: accept ? null : new Date().toISOString(),
     })
     .eq('link_id', linkId)
 

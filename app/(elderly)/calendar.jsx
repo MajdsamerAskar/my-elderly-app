@@ -126,7 +126,7 @@ export default function ElderlyCalendarScreen() {
 
     // blank leading cells
     for (let i = 0; i < firstWeekday; i++) {
-      cells.push(<View key={`blank-${i}`} style={styles.cell} />);
+      cells.push(<View key={`blank-${i}`} className="w-[14.28%] aspect-square" />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -137,32 +137,24 @@ export default function ElderlyCalendarScreen() {
 
       cells.push(
         <TouchableOpacity
-          key={day}
-          style={[
-            styles.cell,
-            isSelected && styles.cellSelected,
-            isToday && !isSelected && styles.cellToday,
-          ]}
-          onPress={() => setSelectedDate(cellDate)}
-        >
-          <Text
-            style={[
-              styles.cellText,
-              isSelected && styles.cellTextSelected,
-              isToday && !isSelected && styles.cellTextToday,
-            ]}
-          >
-            {day}
-          </Text>
-          {/* event dots */}
-          {dots.length > 0 && (
-            <View style={styles.dotsRow}>
-              {dots.slice(0, 3).map((c, i) => (
-                <View key={i} style={[styles.eventDot, { backgroundColor: c }]} />
-              ))}
-            </View>
-          )}
-        </TouchableOpacity>
+  key={day}
+  className={`w-[14.28%] aspect-square items-center justify-center rounded-lg ${isSelected ? 'bg-blue-500' : isToday ? 'bg-blue-100' : 'bg-transparent'}`}
+  onPress={() => setSelectedDate(cellDate)}
+>
+  <Text
+    className={`text-base font-medium ${isSelected ? 'text-white' : isToday ? 'text-blue-600' : 'text-gray-700'}`}
+  >
+    {day}
+  </Text>
+  {/* event dots */}
+  {dots.length > 0 && (
+    <View className="flex-row mt-1 gap-0.5">
+      {dots.slice(0, 3).map((c, i) => (
+        <View key={i} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c }} />
+      ))}
+    </View>
+  )}
+</TouchableOpacity>
       );
     }
 
@@ -170,9 +162,9 @@ export default function ElderlyCalendarScreen() {
     const rows = [];
     for (let i = 0; i < cells.length; i += 7) {
       rows.push(
-        <View key={i} style={styles.gridRow}>
-          {cells.slice(i, i + 7)}
-        </View>
+        <View key={i} className="flex-row w-full">
+  {cells.slice(i, i + 7)}
+</View>
       );
     }
     return rows;
@@ -185,109 +177,108 @@ export default function ElderlyCalendarScreen() {
 
   // ─────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
+    <SafeAreaView className="flex-1 bg-[#F5F6FA]">
+  <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
 
-      {/* ── Top bar ── */}
-      <View style={styles.topBar}>
-        <Text style={styles.screenTitle}>My Calendar</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
-          <Ionicons name="add" size={22} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+  {/* ── Top bar ── */}
+  <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+    <Text className="text-xl font-bold text-gray-900">My Calendar</Text>
+    <TouchableOpacity className="bg-blue-500 w-9 h-9 rounded-full items-center justify-center" onPress={openCreate}>
+      <Ionicons name="add" size={22} color="#FFF" />
+    </TouchableOpacity>
+  </View>
 
-      <FlatList
-        data={dayEvents}
-        keyExtractor={(item) => item.event_id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <>
-            {/* ── Month navigator + grid ── */}
-            <View style={styles.calendarCard}>
-              {/* Month header */}
-              <View style={styles.monthNav}>
-                <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-                  <Ionicons name="chevron-back" size={20} color="#444" />
-                </TouchableOpacity>
-                <Text style={styles.monthLabel}>
-                  {MONTH_NAMES[viewMonth]} {viewYear}
-                </Text>
-                <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-                  <Ionicons name="chevron-forward" size={20} color="#444" />
-                </TouchableOpacity>
-              </View>
+  <FlatList
+    data={dayEvents}
+    keyExtractor={(item) => item.event_id}
+    contentContainerClassName="p-4 pb-20"
+    showsVerticalScrollIndicator={false}
+    ListHeaderComponent={
+      <>
+        {/* ── Month navigator + grid ── */}
+        <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
+          {/* Month header */}
+          <View className="flex-row items-center justify-between mb-4">
+            <TouchableOpacity onPress={prevMonth} className="p-2">
+              <Ionicons name="chevron-back" size={20} color="#444" />
+            </TouchableOpacity>
+            <Text className="text-lg font-bold text-gray-900">
+              {MONTH_NAMES[viewMonth]} {viewYear}
+            </Text>
+            <TouchableOpacity onPress={nextMonth} className="p-2">
+              <Ionicons name="chevron-forward" size={20} color="#444" />
+            </TouchableOpacity>
+          </View>
 
-              {/* Day-of-week headers */}
-              <View style={styles.dayHeaderRow}>
-                {DAY_LABELS.map((d, i) => (
-                  <Text key={i} style={styles.dayHeader}>{d}</Text>
-                ))}
-              </View>
+          {/* Day-of-week headers */}
+          <View className="flex-row justify-between mb-2">
+            {DAY_LABELS.map((d, i) => (
+              <Text key={i} className="flex-1 text-center text-md font-semibold text-gray-500">{d}</Text>
+            ))}
+          </View>
 
-              {/* Day grid */}
-              <View style={styles.grid}>
-                {renderGrid()}
-              </View>
-            </View>
+          {/* Day grid */}
+          <View className="flex-row flex-wrap">
+            {renderGrid()}
+          </View>
+        </View>
 
-            {/* ── Legend ── */}
-            <View style={styles.legendRow}>
-              {Object.entries(TYPE_COLOR).map(([type, color]) => (
-                <View key={type} style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: color }]} />
-                  <Text style={styles.legendText}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            {/* ── Selected day title ── */}
-            <View style={styles.dayTitleRow}>
-              <Text style={styles.dayTitle}>{selectedLabel}</Text>
-              {loading && <ActivityIndicator size="small" color="#5B8CFF" />}
-            </View>
-          </>
-        }
-        renderItem={({ item }) => (
-          <CalendarEventCard event={item} onPress={openEvent} />
-        )}
-        ListEmptyComponent={
-          !loading && (
-            <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={44} color="#D0D5E8" />
-              <Text style={styles.emptyTitle}>No events today</Text>
-              <Text style={styles.emptySubtitle}>
-                Tap the + button to add something
+        {/* ── Legend ── */}
+        <View className="flex-row flex-wrap justify-center gap-x-4 gap-y-2 mb-4">
+          {Object.entries(TYPE_COLOR).map(([type, color]) => (
+            <View key={type} className="flex-row items-center">
+              <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }} />
+              <Text className="text-md text-gray-600">
+                {type.charAt(0).toUpperCase() + type.slice(1)}
               </Text>
             </View>
-          )
-        }
-      />
+          ))}
+        </View>
 
-      {/* ── Modal ── */}
-      <CalendarEventModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSaved={(saved) => {
-          setModalVisible(false);
-          loadEvents();
-          // if saved event falls on selected date, keep it selected
-          if (saved?.start_datetime) {
-            setSelectedDate(new Date(saved.start_datetime));
-          }
-        }}
-        onDeleted={() => {
-          setModalVisible(false);
-          loadEvents();
-        }}
-        event={activeEvent}
-        selectedDate={selectedDate}
-        elderlyUserId={currentUser?.id}
-        currentUserId={currentUser?.id}
-      />
-    </SafeAreaView>
+        {/* ── Selected day title ── */}
+        <View className="flex-row items-center justify-between mb-3">
+          <Text className="text-lg font-bold text-gray-900">{selectedLabel}</Text>
+          {loading && <ActivityIndicator size="small" color="#5B8CFF" />}
+        </View>
+      </>
+    }
+    renderItem={({ item }) => (
+      <CalendarEventCard event={item} onPress={openEvent} />
+    )}
+    ListEmptyComponent={
+      !loading && (
+        <View className="items-center justify-center py-12">
+          <Ionicons name="calendar-outline" size={44} color="#D0D5E8" />
+          <Text className="text-lg font-semibold text-gray-900 mt-4 mb-1">No events today</Text>
+          <Text className="text-md text-gray-500 text-center">
+            Tap the + button to add something
+          </Text>
+        </View>
+      )
+    }
+  />
+
+  {/* ── Modal ── */}
+  <CalendarEventModal
+    visible={modalVisible}
+    onClose={() => setModalVisible(false)}
+    onSaved={(saved) => {
+      setModalVisible(false);
+      loadEvents();
+      if (saved?.start_datetime) {
+        setSelectedDate(new Date(saved.start_datetime));
+      }
+    }}
+    onDeleted={() => {
+      setModalVisible(false);
+      loadEvents();
+    }}
+    event={activeEvent}
+    selectedDate={selectedDate}
+    elderlyUserId={currentUser?.id}
+    currentUserId={currentUser?.id}
+  />
+</SafeAreaView>
   );
 }
 

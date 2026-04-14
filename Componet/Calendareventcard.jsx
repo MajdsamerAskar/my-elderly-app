@@ -44,151 +44,83 @@ export default function CalendarEventCard({ event, onPress, compact = false }) {
 
   if (compact) {
     return (
-      <TouchableOpacity
-        style={[styles.compact, { borderLeftColor: cfg.color }]}
-        onPress={() => onPress?.(event)}
-        activeOpacity={0.75}
-      >
-        <View style={[styles.dot, { backgroundColor: cfg.color }]} />
-        <View style={styles.compactBody}>
-          <Text style={styles.compactTitle} numberOfLines={1}>
-            {event.title}
-          </Text>
-          {time ? <Text style={styles.compactTime}>{time}</Text> : null}
-        </View>
-      </TouchableOpacity>
+     <TouchableOpacity
+  className="flex-row items-center bg-white rounded-lg border-l-[3px] py-[7px] px-[10px] mb-[6px] gap-2"
+  style={{ borderLeftColor: cfg.color }}
+  onPress={() => onPress?.(event)}
+  activeOpacity={0.75}
+>
+  <View 
+    className="w-2 h-2 rounded-full" 
+    style={{ backgroundColor: cfg.color }} 
+  />
+  <View className="flex-1 flex-row justify-between items-center">
+    <Text className="text-lg font-medium text-[#1A1A2E] flex-1" numberOfLines={1}>
+      {event.title}
+    </Text>
+    {time ? <Text className="text-md text-[#888] ml-1">{time}</Text> : null}
+  </View>
+</TouchableOpacity>
     );
   }
 
   return (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: cfg.color }]}
-      onPress={() => onPress?.(event)}
-      activeOpacity={0.75}
-    >
-      {/* Icon badge */}
-      <View style={[styles.iconWrap, { backgroundColor: cfg.bg }]}>
-        <Ionicons name={cfg.icon} size={22} color={cfg.color} />
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={styles.eventType}>{cfg.label.toUpperCase()}</Text>
-        <Text style={styles.title} numberOfLines={2}>
-          {event.title}
-        </Text>
-
-        <View style={styles.meta}>
-          {time ? (
-            <View style={styles.metaRow}>
-              <Ionicons name="time-outline" size={13} color="#888" />
-              <Text style={styles.metaText}>{time}</Text>
-            </View>
-          ) : null}
-
-          {event.location ? (
-            <View style={styles.metaRow}>
-              <Ionicons name="location-outline" size={13} color="#888" />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {event.location}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      </View>
-
-      <Ionicons name="chevron-forward" size={18} color="#CCC" />
-    </TouchableOpacity>
-  );
-}
-
-const styles = StyleSheet.create({
-  // ── Full card ──────────────────────────────────────────────
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 14,
-    borderLeftWidth: 4,
-    padding: 14,
-    marginBottom: 10,
+  className="flex-row items-center bg-white rounded-2xl p-4 mb-3 overflow-visible gap-3"
+  style={{ 
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2,
-    gap: 12,
-  },
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    gap: 3,
-  },
-  eventType: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#AAA',
-    letterSpacing: 0.8,
-  },
-  title: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A2E',
-  },
-  meta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 2,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  metaText: {
-    fontSize: 12,
-    color: '#888',
-  },
+  }}
+  onPress={() => onPress?.(event)}
+  activeOpacity={0.75}
+>
+  {/* Left border indicator */}
+  <View 
+    className="absolute left-0 top-4 bottom-4 w-1 rounded-full"
+    style={{ backgroundColor: cfg.color }} 
+  />
 
-  // ── Compact (dot + title) ─────────────────────────────────
-  compact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    marginBottom: 6,
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  compactBody: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  compactTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#1A1A2E',
-    flex: 1,
-  },
-  compactTime: {
-    fontSize: 12,
-    color: '#888',
-    marginLeft: 4,
-  },
-});
+  {/* Icon badge */}
+  <View 
+    className="rounded-xl items-center justify-center ml-2"
+    style={{ width: 44, height: 44, backgroundColor: cfg.bg }}
+  >
+    <Ionicons name={cfg.icon} size={22} color={cfg.color} />
+  </View>
+
+  {/* Content */}
+  <View className="flex-1 gap-[3px]">
+    <Text className="font-bold text-gray-400 uppercase text-md tracking-[0.8px]">
+      {cfg.label}
+    </Text>
+    <Text className="font-semibold text-gray-900 text-lg" numberOfLines={2}>
+      {event.title}
+    </Text>
+
+    <View className="flex-row flex-wrap mt-0.5 gap-2">
+      {time ? (
+        <View className="flex-row items-center gap-[6px]">
+          <Ionicons name="time-outline" size={15} color="#888" />
+          <Text className="text-gray-500 text-md">{time}</Text>
+        </View>
+      ) : null}
+
+      {event.location ? (
+        <View className="flex-row items-center flex-1 min-w-0 gap-[6px]">
+          <Ionicons name="location-outline" size={15} color="#888" />
+          <Text className="text-gray-500 text-md" numberOfLines={1} ellipsizeMode="tail">
+            {event.location}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  </View>
+
+  <Ionicons name="chevron-forward" size={18} color="#CCC" />
+</TouchableOpacity>
+  );
+}
+

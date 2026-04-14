@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  StyleSheet,
   ActivityIndicator,
   Platform,
   KeyboardAvoidingView,
@@ -170,534 +169,281 @@ export default function CalendarEventModal({
   // ─────────────────────────────────────────────────────────────
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+  <KeyboardAvoidingView
+    className="flex-1 justify-end bg-black/50"
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  >
+    <TouchableOpacity className="flex-1" activeOpacity={1} onPress={onClose} />
 
-        <View style={styles.sheet}>
-          {/* Handle */}
-          <View style={styles.handle} />
+    <View className="bg-white rounded-t-3xl max-h-[85%]">
+      {/* Handle */}
+      <View className="w-12 h-1 bg-gray-300 rounded-full self-center mt-3 mb-2" />
 
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {isEditing ? (isEdit ? 'Edit Event' : 'New Event') : 'Event Details'}
-            </Text>
-            <View style={styles.headerActions}>
-              {isEdit && !readOnly && !isEditing && (
-                <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.iconBtn}>
-                  <Ionicons name="pencil" size={20} color="#5B8CFF" />
-                </TouchableOpacity>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
+        <Text className="text-lg font-bold text-gray-900">
+          {isEditing ? (isEdit ? 'Edit Event' : 'New Event') : 'Event Details'}
+        </Text>
+        <View className="flex-row">
+          {isEdit && !readOnly && !isEditing && (
+            <TouchableOpacity onPress={() => setIsEditing(true)} className="w-10 h-10 items-center justify-center rounded-full bg-blue-50 mr-2">
+              <Ionicons name="pencil" size={20} color="#5B8CFF" />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={onClose} className="w-10 h-10 items-center justify-center rounded-full bg-gray-100">
+            <Ionicons name="close" size={22} color="#666" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView className="px-4 py-4" showsVerticalScrollIndicator={false}>
+
+        {/* Event type selector */}
+        {isEditing && (
+          <View className="flex-row flex-wrap gap-2 mb-4">
+            {EVENT_TYPES.map((t) => (
+              <TouchableOpacity
+                key={t.value}
+                className={`flex-row items-center px-4 py-2 rounded-full border ${eventType === t.value ? 'border-transparent' : 'border-gray-300'}`}
+                style={eventType === t.value ? { backgroundColor: t.color, borderColor: t.color } : {}}
+                onPress={() => setEventType(t.value)}
+              >
+                <Ionicons
+                  name={t.icon}
+                  size={16}
+                  color={eventType === t.value ? '#FFF' : t.color}
+                />
+                <Text
+                  className={`ml-2 text-lg font-medium ${eventType === t.value ? 'text-white' : ''}`}
+                  style={eventType === t.value ? {} : { color: t.color }}
+                >
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Title */}
+        <Field label="Title" required>
+          {isEditing ? (
+            <TextInput
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base bg-gray-50 text-gray-900"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Doctor Appointment"
+              placeholderTextColor="#BBB"
+              maxLength={255}
+            />
+          ) : (
+            <Text className="text-base text-gray-900">{title}</Text>
+          )}
+        </Field>
+
+        {/* Date */}
+        <Field label="Date">
+          {isEditing ? (
+            <>
+              <TouchableOpacity
+                className="flex-row items-center border border-gray-300 rounded-lg px-4 py-3 mb-2 bg-gray-50"
+                onPress={() => setShowDatePicker((prev) => !prev)}
+              >
+                <Ionicons name="calendar-outline" size={16} color="#5B8CFF" />
+                <Text className="ml-2 text-base text-gray-900">{formatDate(startDate)}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={startDate}
+                  mode="date"
+                  display="default"
+                  onChange={(_, d) => {
+                    setShowDatePicker(false);
+                    if (d) setStartDate(prev => {
+                      const next = new Date(d);
+                      next.setHours(prev.getHours(), prev.getMinutes());
+                      return next;
+                    });
+                  }}
+                />
               )}
-              <TouchableOpacity onPress={onClose} style={styles.iconBtn}>
-                <Ionicons name="close" size={22} color="#666" />
+            </>
+          ) : (
+            <Text className="text-base text-gray-900">{formatDate(startDate)}</Text>
+          )}
+        </Field>
+
+        {/* Time */}
+        <Field label="Time">
+          {isEditing ? (
+            <>
+              <TouchableOpacity
+                className="flex-row items-center border border-gray-300 rounded-lg px-4 py-3 mb-2 bg-gray-50"
+                onPress={() => setShowTimePicker((prev) => !prev)}
+              >
+                <Ionicons name="time-outline" size={16} color="#5B8CFF" />
+                <Text className="ml-2 text-base text-gray-900">{formatTime(startDate)}</Text>
+              </TouchableOpacity>
+              {showTimePicker && (
+                <DateTimePicker
+                  value={startDate}
+                  mode="time"
+                  display="default"
+                  onChange={(_, d) => {
+                    setShowTimePicker(false);
+                    if (d) setStartDate(prev => {
+                      const next = new Date(prev);
+                      next.setHours(d.getHours(), d.getMinutes());
+                      return next;
+                    });
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <Text className="text-base text-gray-900">{formatTime(startDate)}</Text>
+          )}
+        </Field>
+
+        {/* ── Location ── */}
+        <Field label="Location">
+          {isEditing ? (
+            <>
+              <TextInput
+                className="border border-gray-300 rounded-lg px-4 py-3 text-base bg-gray-50 text-gray-900"
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g. City Hospital, 45 Main St"
+                placeholderTextColor="#BBB"
+                maxLength={255}
+                returnKeyType="done"
+              />
+              <Text className="text-md text-gray-500 mt-1">
+                Enter an address or place name to enable directions
+              </Text>
+            </>
+          ) : location ? (
+            <View className="bg-gray-50 rounded-lg p-3">
+              <View className="flex-row items-center mb-3">
+                <Ionicons name="location" size={16} color="#5B8CFF" />
+                <Text className="ml-2 text-base text-gray-900 flex-1">{location}</Text>
+              </View>
+
+              {/* Get Directions button */}
+              <TouchableOpacity
+                className="flex-row items-center justify-center bg-blue-500 py-3 rounded-lg"
+                onPress={() => openDirections(location)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="navigate" size={16} color="#FFF" />
+                <Text className="ml-2 text-white font-semibold">Get Directions</Text>
               </TouchableOpacity>
             </View>
+          ) : (
+            <Text className="text-base text-gray-400 italic">No location set</Text>
+          )}
+        </Field>
+
+        {/* Description */}
+        <Field label="Notes">
+          {isEditing ? (
+            <TextInput
+              className="border border-gray-300 rounded-lg px-4 py-3 text-base bg-gray-50 text-gray-900 h-24"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Any additional details…"
+              placeholderTextColor="#BBB"
+              multiline
+              numberOfLines={3}
+            />
+          ) : (
+            <Text className={`text-base ${!description ? 'text-gray-400 italic' : 'text-gray-900'}`}>
+              {description || 'No notes'}
+            </Text>
+          )}
+        </Field>
+
+        {/* Reminder */}
+        <Field label="Reminder">
+          {isEditing ? (
+            <View className="flex-row gap-2">
+              {['15', '30', '60', '120'].map((m) => (
+                <TouchableOpacity
+                  key={m}
+                  className={`flex-1 py-3 rounded-lg border items-center ${reminderMinutes === m ? 'bg-blue-500 border-blue-500' : 'bg-white border-gray-300'}`}
+                  onPress={() => setReminderMinutes(m)}
+                >
+                  <Text
+                    className={`text-lg font-medium ${reminderMinutes === m ? 'text-white' : 'text-gray-700'}`}
+                  >
+                    {parseInt(m) >= 60 ? `${parseInt(m) / 60}h` : `${m}m`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <Text className="text-base text-gray-900">
+              {reminderMinutes
+                ? parseInt(reminderMinutes) >= 60
+                  ? `${parseInt(reminderMinutes) / 60} hour${parseInt(reminderMinutes) / 60 > 1 ? 's' : ''} before`
+                  : `${reminderMinutes} minutes before`
+                : 'No reminder'}
+            </Text>
+          )}
+        </Field>
+
+        {/* Error */}
+        {error && (
+          <View className="flex-row items-center bg-red-50 rounded-lg p-3 mb-4">
+            <Ionicons name="alert-circle" size={16} color="#E05C5C" />
+            <Text className="ml-2 text-lg text-red-600 flex-1">{error}</Text>
           </View>
+        )}
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-
-            {/* Event type selector */}
-            {isEditing && (
-              <View style={styles.typeRow}>
-                {EVENT_TYPES.map((t) => (
-                  <TouchableOpacity
-                    key={t.value}
-                    style={[
-                      styles.typeBtn,
-                      eventType === t.value && { backgroundColor: t.color, borderColor: t.color },
-                    ]}
-                    onPress={() => setEventType(t.value)}
-                  >
-                    <Ionicons
-                      name={t.icon}
-                      size={16}
-                      color={eventType === t.value ? '#FFF' : t.color}
-                    />
-                    <Text
-                      style={[
-                        styles.typeBtnText,
-                        { color: eventType === t.value ? '#FFF' : t.color },
-                      ]}
-                    >
-                      {t.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+        {/* Actions */}
+        {isEditing && (
+          <TouchableOpacity
+            className={`bg-blue-500 py-4 rounded-xl items-center mb-3 ${loading ? 'opacity-60' : ''}`}
+            onPress={handleSave}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text className="text-white font-semibold text-base">
+                {isEdit ? 'Save Changes' : 'Add Event'}
+              </Text>
             )}
+          </TouchableOpacity>
+        )}
 
-            {/* Title */}
-            <Field label="Title" required>
-              {isEditing ? (
-                <TextInput
-                  style={styles.input}
-                  value={title}
-                  onChangeText={setTitle}
-                  placeholder="e.g. Doctor Appointment"
-                  placeholderTextColor="#BBB"
-                  maxLength={255}
-                />
-              ) : (
-                <Text style={styles.valueText}>{title}</Text>
-              )}
-            </Field>
+        {isEdit && isEditing && !readOnly && (
+          <TouchableOpacity
+            className="flex-row items-center justify-center py-3"
+            onPress={handleDelete}
+            disabled={loading}
+          >
+            <Ionicons name="trash-outline" size={16} color="#E05C5C" />
+            <Text className="ml-2 text-red-500 font-semibold">Delete Event</Text>
+          </TouchableOpacity>
+        )}
 
-            {/* Date */}
-            <Field label="Date">
-              {isEditing ? (
-                <>
-                  <TouchableOpacity
-                    style={styles.dateBtn}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={16} color="#5B8CFF" />
-                    <Text style={styles.dateBtnText}>{formatDate(startDate)}</Text>
-                  </TouchableOpacity>
-                  {showDatePicker && (
-                    <DateTimePicker
-                      value={startDate}
-                      mode="date"
-                      display="default"
-                      onChange={(_, d) => {
-                        setShowDatePicker(false);
-                        if (d) setStartDate(prev => {
-                          const next = new Date(d);
-                          next.setHours(prev.getHours(), prev.getMinutes());
-                          return next;
-                        });
-                      }}
-                    />
-                  )}
-                </>
-              ) : (
-                <Text style={styles.valueText}>{formatDate(startDate)}</Text>
-              )}
-            </Field>
-
-            {/* Time */}
-            <Field label="Time">
-              {isEditing ? (
-                <>
-                  <TouchableOpacity
-                    style={styles.dateBtn}
-                    onPress={() => setShowTimePicker(true)}
-                  >
-                    <Ionicons name="time-outline" size={16} color="#5B8CFF" />
-                    <Text style={styles.dateBtnText}>{formatTime(startDate)}</Text>
-                  </TouchableOpacity>
-                  {showTimePicker && (
-                    <DateTimePicker
-                      value={startDate}
-                      mode="time"
-                      display="default"
-                      onChange={(_, d) => {
-                        setShowTimePicker(false);
-                        if (d) setStartDate(prev => {
-                          const next = new Date(prev);
-                          next.setHours(d.getHours(), d.getMinutes());
-                          return next;
-                        });
-                      }}
-                    />
-                  )}
-                </>
-              ) : (
-                <Text style={styles.valueText}>{formatTime(startDate)}</Text>
-              )}
-            </Field>
-
-            {/* ── Location ── */}
-            <Field label="Location">
-              {isEditing ? (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    value={location}
-                    onChangeText={setLocation}
-                    placeholder="e.g. City Hospital, 45 Main St"
-                    placeholderTextColor="#BBB"
-                    maxLength={255}
-                    returnKeyType="done"
-                  />
-                  <Text style={styles.locationHint}>
-                    Enter an address or place name to enable directions
-                  </Text>
-                </>
-              ) : location ? (
-                <View style={styles.locationView}>
-                  <View style={styles.locationTextRow}>
-                    <Ionicons name="location" size={16} color="#5B8CFF" />
-                    <Text style={styles.locationText}>{location}</Text>
-                  </View>
-
-                  {/* Get Directions button */}
-                  <TouchableOpacity
-                    style={styles.directionsBtn}
-                    onPress={() => openDirections(location)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="navigate" size={16} color="#FFF" />
-                    <Text style={styles.directionsBtnText}>Get Directions</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <Text style={styles.emptyText}>No location set</Text>
-              )}
-            </Field>
-
-            {/* Description */}
-            <Field label="Notes">
-              {isEditing ? (
-                <TextInput
-                  style={[styles.input, styles.inputMulti]}
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="Any additional details…"
-                  placeholderTextColor="#BBB"
-                  multiline
-                  numberOfLines={3}
-                />
-              ) : (
-                <Text style={[styles.valueText, !description && styles.emptyText]}>
-                  {description || 'No notes'}
-                </Text>
-              )}
-            </Field>
-
-            {/* Reminder */}
-            <Field label="Reminder">
-              {isEditing ? (
-                <View style={styles.reminderRow}>
-                  {['15', '30', '60', '120'].map((m) => (
-                    <TouchableOpacity
-                      key={m}
-                      style={[
-                        styles.reminderBtn,
-                        reminderMinutes === m && styles.reminderBtnActive,
-                      ]}
-                      onPress={() => setReminderMinutes(m)}
-                    >
-                      <Text
-                        style={[
-                          styles.reminderBtnText,
-                          reminderMinutes === m && styles.reminderBtnTextActive,
-                        ]}
-                      >
-                        {parseInt(m) >= 60 ? `${parseInt(m) / 60}h` : `${m}m`}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <Text style={styles.valueText}>
-                  {reminderMinutes
-                    ? parseInt(reminderMinutes) >= 60
-                      ? `${parseInt(reminderMinutes) / 60} hour${parseInt(reminderMinutes) / 60 > 1 ? 's' : ''} before`
-                      : `${reminderMinutes} minutes before`
-                    : 'No reminder'}
-                </Text>
-              )}
-            </Field>
-
-            {/* Error */}
-            {error && (
-              <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={16} color="#E05C5C" />
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            {/* Actions */}
-            {isEditing && (
-              <TouchableOpacity
-                style={[styles.saveBtn, loading && styles.saveBtnDisabled]}
-                onPress={handleSave}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#FFF" />
-                ) : (
-                  <Text style={styles.saveBtnText}>
-                    {isEdit ? 'Save Changes' : 'Add Event'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-
-            {isEdit && isEditing && !readOnly && (
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={handleDelete}
-                disabled={loading}
-              >
-                <Ionicons name="trash-outline" size={16} color="#E05C5C" />
-                <Text style={styles.deleteBtnText}>Delete Event</Text>
-              </TouchableOpacity>
-            )}
-
-            <View style={{ height: 30 }} />
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <View className="h-8" />
+      </ScrollView>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
   );
 }
 
 // ── Helper label wrapper ──────────────────────────────────────
 function Field({ label, required, children }) {
   return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>
-        {label}
-        {required && <Text style={{ color: '#E05C5C' }}> *</Text>}
-      </Text>
-      {children}
-    </View>
+    <View className="mb-4">
+  <Text className="text-lg font-semibold text-gray-700 mb-2">
+    {label}
+    {required && <Text className="text-red-500"> *</Text>}
+  </Text>
+  {children}
+</View>
   );
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingTop: 12,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A2E',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  iconBtn: {
-    padding: 6,
-  },
-  body: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-  },
-
-  // Type selector
-  typeRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
-  },
-  typeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 9,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#E8E8E8',
-    backgroundColor: '#FAFAFA',
-  },
-  typeBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // Fields
-  field: {
-    marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#888',
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: '#F7F7FB',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1A1A2E',
-    borderWidth: 1,
-    borderColor: '#EBEBEB',
-  },
-  inputMulti: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  valueText: {
-    fontSize: 15,
-    color: '#1A1A2E',
-    paddingVertical: 2,
-  },
-  emptyText: {
-    color: '#BBB',
-    fontStyle: 'italic',
-    fontSize: 15,
-  },
-
-  // Location hint (edit mode)
-  locationHint: {
-    fontSize: 11,
-    color: '#AAA',
-    marginTop: 5,
-    marginLeft: 2,
-  },
-
-  // Location view (read mode)
-  locationView: {
-    gap: 10,
-  },
-  locationTextRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-  },
-  locationText: {
-    fontSize: 15,
-    color: '#1A1A2E',
-    flex: 1,
-    lineHeight: 20,
-  },
-  directionsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    backgroundColor: '#5B8CFF',
-    borderRadius: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 20,
-    shadowColor: '#5B8CFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  directionsBtnText: {
-    color: '#FFF',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  // Date/time buttons
-  dateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#F0F4FF',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-  },
-  dateBtnText: {
-    fontSize: 15,
-    color: '#1A1A2E',
-    fontWeight: '500',
-  },
-
-  // Reminder pills
-  reminderRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  reminderBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#E0E0E0',
-    backgroundColor: '#FAFAFA',
-  },
-  reminderBtnActive: {
-    backgroundColor: '#5B8CFF',
-    borderColor: '#5B8CFF',
-  },
-  reminderBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-  },
-  reminderBtnTextActive: {
-    color: '#FFF',
-  },
-
-  // Error
-  errorBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FDF0F0',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-  },
-  errorText: {
-    color: '#E05C5C',
-    fontSize: 13,
-    flex: 1,
-  },
-
-  // Save / Delete
-  saveBtn: {
-    backgroundColor: '#5B8CFF',
-    borderRadius: 14,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  deleteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-  },
-  deleteBtnText: {
-    color: '#E05C5C',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});

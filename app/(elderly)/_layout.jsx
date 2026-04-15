@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function ElderlyLayout() {
   return (
     <Tabs screenOptions={{ 
-      tabBarActiveTintColor: '#FF3B30',
+      tabBarActiveTintColor: '#5B8CFF',
       tabBarStyle: { height: 70, paddingBottom: 10 } // Slightly larger for better accessibility
     }}>
       <Tabs.Screen 

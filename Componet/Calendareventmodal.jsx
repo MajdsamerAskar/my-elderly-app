@@ -190,9 +190,7 @@ export default function CalendarEventModal({
               <Ionicons name="pencil" size={20} color="#5B8CFF" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={onClose} className="w-10 h-10 items-center justify-center rounded-full bg-gray-100">
-            <Ionicons name="close" size={22} color="#666" />
-          </TouchableOpacity>
+          
         </View>
       </View>
 
@@ -401,6 +399,7 @@ export default function CalendarEventModal({
 
         {/* Actions */}
         {isEditing && (
+          <>
           <TouchableOpacity
             className={`bg-blue-500 py-4 rounded-xl items-center mb-3 ${loading ? 'opacity-60' : ''}`}
             onPress={handleSave}
@@ -414,6 +413,9 @@ export default function CalendarEventModal({
               </Text>
             )}
           </TouchableOpacity>
+          <TouchableOpacity onPress={onClose} className=" py-4 items-center justify-center rounded-full bg-gray-100">
+            <Text className="text-gray-700 font-semibold">Cancel</Text>
+          </TouchableOpacity></>
         )}
 
         {isEdit && isEditing && !readOnly && (

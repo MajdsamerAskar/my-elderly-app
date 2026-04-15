@@ -151,131 +151,177 @@ export default function ElderlyHome() {
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.userName}>
-            {user?.first_name} {user?.last_name} 👋
-          </Text>
-        </View>
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateText}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </Text>
-        </View>
-      </View>
+  className="flex-1 bg-[COLORS.background]"
+  contentContainerStyle={{ paddingBottom: 32 }}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+>
+  {/* Header */}
+  <View
+    className="flex-row justify-between items-center px-6 pt-[60px] pb-6"
+    style={{ backgroundColor: COLORS.primary }}
+  >
+    <View>
+      <Text className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+        {getGreeting()}
+      </Text>
+      <Text className="text-[22px] font-bold text-white mt-0.5">
+        {user?.first_name} {user?.last_name} 👋
+      </Text>
+    </View>
+    <View className="rounded-lg px-2.5 py-1.5" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+      <Text className="text-white text-[13px] font-semibold">
+        {new Date().toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        })}
+      </Text>
+    </View>
+  </View>
 
-      {/* SOS Button */}
-      <View style={styles.sosContainer}>
-        <TouchableOpacity
-          style={[styles.sosButton, sosLoading && styles.sosButtonDisabled]}
-          onPress={handleSOS}
-          disabled={sosLoading}
-          activeOpacity={0.8}
+  {/* SOS Button */}
+  <View
+    className="items-center py-8 bg-white mb-4"
+    style={{
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    }}
+  >
+    <TouchableOpacity
+      className={`w-[180px] h-[180px] rounded-full justify-center items-center border-[6px] ${sosLoading ? 'opacity-70' : ''}`}
+      style={{
+        backgroundColor: COLORS.danger,
+        borderColor: COLORS.dangerDark,
+        shadowColor: COLORS.danger,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 12,
+      }}
+      onPress={handleSOS}
+      disabled={sosLoading}
+      activeOpacity={0.8}
+    >
+      {sosLoading ? (
+        <ActivityIndicator size="large" color="#fff" />
+      ) : (
+        <>
+          <Text className="text-[48px] mb-1">🆘</Text>
+          <Text className="text-[32px] font-black text-white tracking-[4px]">SOS</Text>
+          <Text className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            Press for Emergency
+          </Text>
+        </>
+      )}
+    </TouchableOpacity>
+    <Text className="mt-4 text-[13px]" style={{ color: COLORS.subtle }}>
+      Tap to call your caregiver immediately
+    </Text>
+  </View>
+
+  {/* Medications Today */}
+  <View className="mx-4 mb-4">
+    <View className="flex-row items-center mb-3 gap-2">
+      <Ionicons name="medical" size={20} color={COLORS.primary} />
+      <Text className="text-[17px] font-bold flex-1" style={{ color: COLORS.text }}>
+        Today's Medications
+      </Text>
+      {pendingMeds.length > 0 && (
+        <View
+          className="rounded-xl px-2 py-0.5"
+          style={{ backgroundColor: COLORS.danger }}
         >
-          {sosLoading ? (
-            <ActivityIndicator size="large" color={COLORS.white} />
-          ) : (
-            <>
-              <Text style={styles.sosIcon}>🆘</Text>
-              <Text style={styles.sosText}>SOS</Text>
-              <Text style={styles.sosSubtext}>Press for Emergency</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.sosHint}>
-          Tap to call your caregiver immediately
+          <Text className="text-white text-xs font-bold">{pendingMeds.length}</Text>
+        </View>
+      )}
+    </View>
+
+    {medications.length === 0 ? (
+      <View
+        className="bg-white rounded-xl p-5 items-center border"
+        style={{ borderColor: COLORS.border }}
+      >
+        <Text className="text-[15px]" style={{ color: COLORS.subtle }}>
+          ✅ No medications today
         </Text>
       </View>
-
-      {/* Medications Today */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="medical" size={20} color={COLORS.primary} />
-          <Text style={styles.sectionTitle}>Today's Medications</Text>
-          {pendingMeds.length > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingMeds.length}</Text>
-            </View>
-          )}
-        </View>
-
-        {medications.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>✅ No medications today</Text>
+    ) : (
+      medications.map((med, index) => (
+        <View
+          key={index}
+          className="bg-white rounded-xl p-4 mb-2 flex-row items-center border"
+          style={{
+            borderColor: COLORS.border,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.04,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
+          <View className="flex-1">
+            <Text className="text-base font-bold" style={{ color: COLORS.text }}>
+              {med.name}
+            </Text>
+            <Text className="text-[13px] mt-0.5" style={{ color: COLORS.subtle }}>
+              {med.dosage}
+            </Text>
+            <Text className="text-[13px] mt-1 font-semibold" style={{ color: COLORS.primary }}>
+              🕐 {med.scheduled_time?.slice(0, 5)}
+            </Text>
           </View>
-        ) : (
-          medications.map((med, index) => (
-            <View key={index} style={styles.medCard}>
-              <View style={styles.medInfo}>
-                <Text style={styles.medName}>{med.name}</Text>
-                <Text style={styles.medDosage}>{med.dosage}</Text>
-                <Text style={styles.medTime}>
-                  🕐 {med.scheduled_time?.slice(0, 5)}
-                </Text>
-              </View>
-              <View style={styles.medStatus}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={28}
-                  color={COLORS.border}
-                />
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Health Summary */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="heart" size={20} color={COLORS.danger} />
-          <Text style={styles.sectionTitle}>Health Summary</Text>
+          <View className="ml-3">
+            <Ionicons name="checkmark-circle" size={28} color={COLORS.border} />
+          </View>
         </View>
+      ))
+    )}
+  </View>
 
-        <View style={styles.healthGrid}>
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>❤️</Text>
-            <Text style={styles.healthLabel}>Blood Pressure</Text>
-            <Text style={styles.healthValue}>-- / --</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
+  {/* Health Summary */}
+  <View className="mx-4 mb-4">
+    <View className="flex-row items-center mb-3 gap-2">
+      <Ionicons name="heart" size={20} color={COLORS.danger} />
+      <Text className="text-[17px] font-bold flex-1" style={{ color: COLORS.text }}>
+        Health Summary
+      </Text>
+    </View>
 
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>😊</Text>
-            <Text style={styles.healthLabel}>Today's Mood</Text>
-            <Text style={styles.healthValue}>--</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
+    <View className="flex-row flex-wrap gap-[10px]">
+      {[
+        { emoji: '❤️', label: 'Blood Pressure', value: '-- / --' },
+        { emoji: '😊', label: "Today's Mood",   value: '--'       },
+        { emoji: '😴', label: 'Last Sleep',      value: '-- hrs'  },
+        { emoji: '🩸', label: 'Blood Sugar',     value: '-- mg'   },
+      ].map(({ emoji, label, value }) => (
+        <TouchableOpacity
+          key={label}
+          className="bg-white rounded-xl p-4 items-center border"
+          style={{
+            width: '47%',
+            borderColor: COLORS.border,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.04,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
+          <Text className="text-[28px] mb-2">{emoji}</Text>
+          <Text className="text-xs text-center" style={{ color: COLORS.subtle }}>{label}</Text>
+          <Text className="text-[18px] font-bold mt-1" style={{ color: COLORS.text }}>{value}</Text>
+          <Text className="text-[11px] mt-1" style={{ color: COLORS.primary }}>Tap to log</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  </View>
 
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>😴</Text>
-            <Text style={styles.healthLabel}>Last Sleep</Text>
-            <Text style={styles.healthValue}>-- hrs</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>🩸</Text>
-            <Text style={styles.healthLabel}>Blood Sugar</Text>
-            <Text style={styles.healthValue}>-- mg</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-    </ScrollView>
+</ScrollView>
   )
 }
 

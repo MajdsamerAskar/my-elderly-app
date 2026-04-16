@@ -96,7 +96,7 @@ export default function CaregiverHome() {
     }
   }
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />
+  if (loading) return <ActivityIndicator classname="flex-1" />
 
   const initialRegion = elderlyLocation
     ? {
@@ -108,152 +108,111 @@ export default function CaregiverHome() {
     : { latitude: 33.3152, longitude: 44.3661, latitudeDelta: 0.05, longitudeDelta: 0.05 }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView className="flex-1 bg-[#f5f5f5]" contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
 
-      {/* Header */}
-      <Text style={styles.heading}>Patient Overview</Text>
+  {/* Header */}
+  <Text className="text-xl font-semibold text-gray-900 mb-1">Patient Overview</Text>
 
-      {/* No location banner */}
-      {!elderlyLocation && (
-        <View style={styles.banner}>
-          <Text style={styles.bannerTxt}>No location data yet for your patient.</Text>
-        </View>
+  {/* No location banner */}
+  {!elderlyLocation && (
+    <View className="bg-[#fff3cd] p-2.5 rounded-lg">
+      <Text className="text-[#856404] text-center">No location data yet for your patient.</Text>
+    </View>
+  )}
+
+  {/* Map card */}
+  <View className="rounded-xl overflow-hidden border border-gray-200">
+    <MapView
+      ref={mapRef}
+      className="w-full"
+      style={{ height: height * 0.35 }}
+      initialRegion={initialRegion}
+      onPress={handleMapPress}
+    >
+      {/* Patient location marker */}
+      {elderlyLocation && (
+        <Marker
+          coordinate={{
+            latitude: elderlyLocation.latitude,
+            longitude: elderlyLocation.longitude,
+          }}
+          title="Patient Location"
+          pinColor="blue"
+        />
       )}
 
-      {/* Map card */}
-      <View style={styles.mapCard}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={initialRegion}
-          onPress={handleMapPress}
-        >
-          {/* Patient location marker */}
-          {elderlyLocation && (
-            <Marker
-              coordinate={{
-                latitude: elderlyLocation.latitude,
-                longitude: elderlyLocation.longitude,
-              }}
-              title="Patient Location"
-              pinColor="blue"
-            />
-          )}
+      {/* Saved fence — blue */}
+      {fence && (
+        <Circle
+          center={{
+            latitude: Number(fence.center_latitude),
+            longitude: Number(fence.center_longitude),
+          }}
+          radius={fence.radius_meters}
+          fillColor="rgba(0,150,255,0.15)"
+          strokeColor="rgba(0,100,255,0.5)"
+          strokeWidth={2}
+        />
+      )}
 
-          {/* Saved fence — blue */}
-          {fence && (
-            <Circle
-              center={{
-                latitude: Number(fence.center_latitude),
-                longitude: Number(fence.center_longitude),
-              }}
-              radius={fence.radius_meters}
-              fillColor="rgba(0,150,255,0.15)"
-              strokeColor="rgba(0,100,255,0.5)"
-              strokeWidth={2}
-            />
-          )}
-
-          {/* Pending fence — orange */}
-          {pendingFence && (
-            <>
-              <Circle
-                center={{
-                  latitude: pendingFence.latitude,
-                  longitude: pendingFence.longitude,
-                }}
-                radius={pendingFence.radiusMeters}
-                fillColor="rgba(255,165,0,0.15)"
-                strokeColor="rgba(255,140,0,0.7)"
-                strokeWidth={2}
-              />
-              <Marker
-                coordinate={{
-                  latitude: pendingFence.latitude,
-                  longitude: pendingFence.longitude,
-                }}
-                pinColor="orange"
-                title="Tap map to reposition"
-              />
-            </>
-          )}
-        </MapView>
-      </View>
-
-      {/* Pending fence controls */}
+      {/* Pending fence — orange */}
       {pendingFence && (
-        <View style={styles.panel}>
-          <Text style={styles.hint}>Tap map to move · + / − to resize</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Radius: {pendingFence.radiusMeters}m</Text>
-            <TouchableOpacity
-              onPress={() =>
-                setPendingFence(p => ({ ...p, radiusMeters: Math.max(10, p.radiusMeters - 10) }))
-              }
-            >
-              <Text style={styles.btn}>−</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() =>
-                setPendingFence(p => ({ ...p, radiusMeters: p.radiusMeters + 10 }))
-              }
-            >
-              <Text style={styles.btn}>+</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={saveFence}>
-              <Text style={styles.saveTxt}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setPendingFence(null)}>
-              <Text style={styles.resetTxt}>Reset</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <>
+          <Circle
+            center={{
+              latitude: pendingFence.latitude,
+              longitude: pendingFence.longitude,
+            }}
+            radius={pendingFence.radiusMeters}
+            fillColor="rgba(255,165,0,0.15)"
+            strokeColor="rgba(255,140,0,0.7)"
+            strokeWidth={2}
+          />
+          <Marker
+            coordinate={{
+              latitude: pendingFence.latitude,
+              longitude: pendingFence.longitude,
+            }}
+            pinColor="orange"
+            title="Tap map to reposition"
+          />
+        </>
       )}
+    </MapView>
+  </View>
 
-      {/* ── Add more home screen sections below here ── */}
+  {/* Pending fence controls */}
+  {pendingFence && (
+    <View className="bg-white rounded-xl p-3.5 border border-gray-200">
+      <Text className="text-xs text-gray-500 mb-2">Tap map to move · + / − to resize</Text>
+      <View className="flex-row items-center gap-2">
+        <Text className="flex-1 text-sm text-gray-800">Radius: {pendingFence.radiusMeters}m</Text>
+        <TouchableOpacity
+          onPress={() =>
+            setPendingFence(p => ({ ...p, radiusMeters: Math.max(10, p.radiusMeters - 10) }))
+          }
+        >
+          <Text className="text-[22px] px-2.5 text-gray-800">−</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() =>
+            setPendingFence(p => ({ ...p, radiusMeters: p.radiusMeters + 10 }))
+          }
+        >
+          <Text className="text-[22px] px-2.5 text-gray-800">+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="bg-[#0070f3] rounded-lg px-3.5 py-2" onPress={saveFence}>
+          <Text className="text-white font-semibold text-sm">Save</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setPendingFence(null)}>
+          <Text className="text-[#E63946] font-semibold text-sm px-1">Reset</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )}
 
-    </ScrollView>
+  {/* ── Add more home screen sections below here ── */}
+
+</ScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 16, gap: 12, paddingBottom: 40 },
-
-  heading: { fontSize: 20, fontWeight: '600', color: '#111', marginBottom: 4 },
-
-  mapCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  map: { height: height * 0.35 },
-
-  panel: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  hint: { fontSize: 12, color: '#888', marginBottom: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  label: { flex: 1, fontSize: 14, color: '#333' },
-  btn: { fontSize: 22, paddingHorizontal: 10, color: '#333' },
-  saveBtn: {
-    backgroundColor: '#0070f3',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  saveTxt: { color: 'white', fontWeight: '600', fontSize: 14 },
-  resetTxt: { color: '#E63946', fontWeight: '600', fontSize: 14, paddingHorizontal: 4 },
-
-  banner: {
-    backgroundColor: '#fff3cd',
-    padding: 10,
-    borderRadius: 8,
-  },
-  bannerTxt: { color: '#856404', textAlign: 'center' },
-})

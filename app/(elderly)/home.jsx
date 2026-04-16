@@ -143,15 +143,15 @@ export default function ElderlyHome() {
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center" style={{ backgroundColor: COLORS.bg || '#fff' }}>
-  <ActivityIndicator size="large" color={COLORS.primary} />
+      <View className="flex-1 justify-center items-center bg-white">
+  <ActivityIndicator size="large" className="text-[#007AFF]" />
 </View>
     )
   }
 
   return (
     <ScrollView
-  className="flex-1 bg-[COLORS.background]"
+  className="flex-1 bg-[#F8F9FA]"
   contentContainerStyle={{ paddingBottom: 32 }}
   refreshControl={
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -162,14 +162,14 @@ export default function ElderlyHome() {
     className="flex-row bg-[#5B8CFF] justify-between items-center px-6 pt-[60px] pb-6"
   >
     <View>
-      <Text className="text-sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+      <Text className="text-sm text-white-800" >
         {getGreeting()}
       </Text>
       <Text className="text-[22px] font-bold text-white mt-0.5">
         {user?.first_name} {user?.last_name} 👋
       </Text>
     </View>
-    <View className="rounded-lg px-2.5 py-1.5" style={{ backgroundColor: 'rgba(255,255,255,0.2)' }}>
+    <View className="rounded-lg px-2.5 py-1.5 bg-white-200">
       <Text className="text-white text-[13px] font-semibold">
         {new Date().toLocaleDateString('en-US', {
           weekday: 'short',
@@ -192,10 +192,9 @@ export default function ElderlyHome() {
     }}
   >
     <TouchableOpacity
-      className={`w-[180px] h-[180px] rounded-full justify-center items-center border-[6px] ${sosLoading ? 'opacity-70' : ''}`}
+      className={`w-[180px] h-[180px] rounded-full justify-center items-center border-[6px] ${sosLoading ? 'opacity-70' : ''}
+      bg-[#E63946] border-[#C1121F]`}
       style={{
-        backgroundColor: COLORS.danger,
-        borderColor: COLORS.dangerDark,
         shadowColor: COLORS.danger,
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.4,
@@ -212,13 +211,13 @@ export default function ElderlyHome() {
         <>
           <Text className="text-[48px] mb-1">🆘</Text>
           <Text className="text-[32px] font-black text-white tracking-[4px]">SOS</Text>
-          <Text className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.9)' }}>
+          <Text className="text-[11px] mt-0.5 text-white-900" >
             Press for Emergency
           </Text>
         </>
       )}
     </TouchableOpacity>
-    <Text className="mt-4 text-[13px]" style={{ color: COLORS.subtle }}>
+    <Text className="mt-4 text-[13px] text-[#666666]">
       Tap to call your caregiver immediately
     </Text>
   </View>
@@ -226,14 +225,13 @@ export default function ElderlyHome() {
   {/* Medications Today */}
   <View className="mx-4 mb-4">
     <View className="flex-row items-center mb-3 gap-2">
-      <Ionicons name="medical" size={20} color={COLORS.primary} />
-      <Text className="text-[17px] font-bold flex-1" style={{ color: COLORS.text }}>
+      <Ionicons name="medical" size={20} className="text-[#007AFF]" />
+      <Text className="text-[17px] font-bold flex-1 text-[#1A1A2D]">
         Today's Medications
       </Text>
       {pendingMeds.length > 0 && (
         <View
-          className="rounded-xl px-2 py-0.5"
-          style={{ backgroundColor: COLORS.danger }}
+          className="rounded-xl px-2 py-0.5 bg-[#E63946]"
         >
           <Text className="text-white text-xs font-bold">{pendingMeds.length}</Text>
         </View>
@@ -242,10 +240,9 @@ export default function ElderlyHome() {
 
     {medications.length === 0 ? (
       <View
-        className="bg-white rounded-xl p-5 items-center border"
-        style={{ borderColor: COLORS.border }}
+        className="bg-white rounded-xl p-5 items-center border border-[#E0E0E0]"
       >
-        <Text className="text-[15px]" style={{ color: COLORS.subtle }}>
+        <Text className="text-[15px] text-[#666666]" >
           ✅ No medications today
         </Text>
       </View>
@@ -253,9 +250,8 @@ export default function ElderlyHome() {
       medications.map((med, index) => (
         <View
           key={index}
-          className="bg-white rounded-xl p-4 mb-2 flex-row items-center border"
+          className="bg-white rounded-xl p-4 mb-2 flex-row items-center border border-[#E0E0E0]"
           style={{
-            borderColor: COLORS.border,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.04,
@@ -264,18 +260,18 @@ export default function ElderlyHome() {
           }}
         >
           <View className="flex-1">
-            <Text className="text-base font-bold" style={{ color: COLORS.text }}>
+            <Text className="text-base font-bold text-[#1A1A2D]" >
               {med.name}
             </Text>
-            <Text className="text-[13px] mt-0.5" style={{ color: COLORS.subtle }}>
+            <Text className="text-[13px] mt-0.5 text-[#666666]" >
               {med.dosage}
             </Text>
-            <Text className="text-[13px] mt-1 font-semibold" style={{ color: COLORS.primary }}>
+            <Text className="text-[13px] mt-1 font-semibold text-[#007AFF]" >
               🕐 {med.scheduled_time?.slice(0, 5)}
             </Text>
           </View>
           <View className="ml-3">
-            <Ionicons name="checkmark-circle" size={28} color={COLORS.border} />
+            <Ionicons name="checkmark-circle" size={28} className="border border-[#E0E0E0]" />
           </View>
         </View>
       ))
@@ -285,8 +281,8 @@ export default function ElderlyHome() {
   {/* Health Summary */}
   <View className="mx-4 mb-4">
     <View className="flex-row items-center mb-3 gap-2">
-      <Ionicons name="heart" size={20} color={COLORS.danger} />
-      <Text className="text-[17px] font-bold flex-1" style={{ color: COLORS.text }}>
+      <Ionicons name="heart" size={20} className="text-[#E63946]" />
+      <Text className="text-[17px] font-bold flex-1 text-[#1A1A2D]" >
         Health Summary
       </Text>
     </View>
@@ -300,10 +296,8 @@ export default function ElderlyHome() {
       ].map(({ emoji, label, value }) => (
         <TouchableOpacity
           key={label}
-          className="bg-white rounded-xl p-4 items-center border"
+          className="bg-white rounded-xl p-4 items-center border w-47% border-[#E0E0E0]"
           style={{
-            width: '47%',
-            borderColor: COLORS.border,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 1 },
             shadowOpacity: 0.04,
@@ -312,9 +306,9 @@ export default function ElderlyHome() {
           }}
         >
           <Text className="text-[28px] mb-2">{emoji}</Text>
-          <Text className="text-xs text-center" style={{ color: COLORS.subtle }}>{label}</Text>
-          <Text className="text-[18px] font-bold mt-1" style={{ color: COLORS.text }}>{value}</Text>
-          <Text className="text-[11px] mt-1" style={{ color: COLORS.primary }}>Tap to log</Text>
+          <Text className="text-xs text-center text-[#666666]">{label}</Text>
+          <Text className="text-[18px] font-bold mt-1 text-[#1A1A2D]" >{value}</Text>
+          <Text className="text-[11px] mt-1 text-[#007AFF]" >Tap to log</Text>
         </TouchableOpacity>
       ))}
     </View>

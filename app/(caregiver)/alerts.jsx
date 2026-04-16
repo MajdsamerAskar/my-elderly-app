@@ -27,40 +27,28 @@ export default function Notifications() {
 
   useEffect(() => { fetchNotifications() }, [])
 
-  if (loading) return <ActivityIndicator style={{ flex: 1 }} />
+  if (loading) return <ActivityIndicator className="flex-1" />
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={notifications}
-        keyExtractor={n => n.notification_id}
-        ListEmptyComponent={<Text style={styles.empty}>No notifications yet.</Text>}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.card, !item.is_read && styles.unread]}
-            onPress={() => markRead(item.notification_id)}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.title}>{item.title}</Text>
-              {!item.is_read && <View style={styles.dot} />}
-            </View>
-            <Text style={styles.body}>{item.body}</Text>
-            <Text style={styles.time}>{new Date(item.sent_at).toLocaleString()}</Text>
-          </TouchableOpacity>
-        )}
-      />
-    </View>
+    <View className="flex-1 bg-[#f5f5f5]">
+  <FlatList
+    data={notifications}
+    keyExtractor={n => n.notification_id}
+    ListEmptyComponent={<Text className="text-center mt-[60px] text-gray-400">No notifications yet.</Text>}
+    renderItem={({ item }) => (
+      <TouchableOpacity
+        className={`bg-white mx-4 mt-3 rounded-xl p-3.5 ${!item.is_read ? 'border-l-[3px]' : ''} ${!item.is_read ? 'border-l-[#0070f3]' : ''}`}
+        onPress={() => markRead(item.notification_id)}
+      >
+        <View className="flex-row justify-between items-center">
+          <Text className="text-[15px] font-semibold text-gray-900">{item.title}</Text>
+          {!item.is_read && <View className="w-2 h-2 rounded-full bg-[#0070f3]" />}
+        </View>
+        <Text className="text-sm text-gray-600 mt-1">{item.body}</Text>
+        <Text className="text-xs text-gray-400 mt-1.5">{new Date(item.sent_at).toLocaleString()}</Text>
+      </TouchableOpacity>
+    )}
+  />
+</View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  empty: { textAlign: 'center', marginTop: 60, color: '#999' },
-  card: { backgroundColor: 'white', marginHorizontal: 16, marginTop: 12, borderRadius: 12, padding: 14 },
-  unread: { borderLeftWidth: 3, borderLeftColor: '#0070f3' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 15, fontWeight: '600', color: '#111' },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0070f3' },
-  body: { fontSize: 14, color: '#555', marginTop: 4 },
-  time: { fontSize: 12, color: '#aaa', marginTop: 6 },
-})

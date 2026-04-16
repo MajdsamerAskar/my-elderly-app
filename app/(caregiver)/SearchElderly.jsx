@@ -13,6 +13,8 @@ import {
 } from 'react-native'
 import { searchElderly, sendLinkRequest , getLinkedElderly } from '../../services/Caregiver.service'
 import { getCurrentUser } from '../../services/auth.service'
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 export default function SearchElderly() {
   const [query, setQuery] = useState('')
@@ -73,244 +75,122 @@ try {
     const isLinked = linkedIds.includes(item.user_id)
 
     return (
-      <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {getInitials(item.first_name, item.last_name)}
-          </Text>
-        </View>
+      <View 
+  className="flex-row items-center bg-white rounded-[14px] p-3.5 mb-2.5"
+  style={{
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  }}
+>
+  <View className="w-[46px] h-[46px] rounded-full bg-[#E8F0FE] justify-center items-center mr-3">
+    <Text className="text-base font-bold text-[#4F8EF7]">
+      {getInitials(item.first_name, item.last_name)}
+    </Text>
+  </View>
 
-        <View style={styles.cardInfo}>
-          <Text style={styles.cardName}>
-            {item.first_name} {item.last_name}
-          </Text>
-          {item.phone_number ? (
-            <Text style={styles.cardSub}>{item.phone_number}</Text>
-          ) : null}
-        </View>
+  <View className="flex-1">
+    <Text className="text-base font-semibold text-[#1A1A2E] mb-0.5">
+      {item.first_name} {item.last_name}
+    </Text>
+    {item.phone_number ? (
+      <Text className="text-[13px] text-gray-400">{item.phone_number}</Text>
+    ) : null}
+  </View>
 
-        <TouchableOpacity
-          style={[
-            styles.requestBtn,(isSent || isLinked) && styles.requestBtnSent,
-            isSending && styles.requestBtnLoading,
-            isLinked && styles.requestBtnLinked,
-          ]}
-          onPress={() => handleSendRequest(item)}
-          disabled={isSent || isSending || isLinked}
-          activeOpacity={0.75}
-        >
-          {isSending ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={[styles.requestBtnText,  (isSent || isLinked) && styles.requestBtnTextSent]}>
-               {isLinked ? 'Already linked' : isSent ? 'Sent' : 'Connect'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
+  <TouchableOpacity
+    className={`rounded-lg py-2 px-4 min-w-[80px] items-center ${isSending ? 'bg-[#7AABF9]' : isLinked ? 'bg-[#F0FDF4] border border-[#86EFAC]' : isSent ? 'bg-[#E8F5E9]' : 'bg-[#4F8EF7]'}`}
+    onPress={() => handleSendRequest(item)}
+    disabled={isSent || isSending || isLinked}
+    activeOpacity={0.75}
+  >
+    {isSending ? (
+      <ActivityIndicator size="small" color="#fff" />
+    ) : (
+      <Text className={`text-sm font-semibold ${isLinked || isSent ? 'text-[#4CAF50]' : 'text-white'}`}>
+        {isLinked ? 'Already linked' : isSent ? 'Sent' : 'Connect'}
+      </Text>
+    )}
+  </TouchableOpacity>
+</View>
     )
   }
 
   const renderEmpty = () => {
     if (!hasSearched) return null
     return (
-      <View style={styles.emptyState}>
-        <Text style={styles.emptyIcon}>🔍</Text>
-        <Text style={styles.emptyTitle}>No results found</Text>
-        <Text style={styles.emptySub}>
-          Try searching by first name, last name, or phone number.
-        </Text>
-      </View>
+      <View className="flex-1 justify-center items-center pt-[60px]">
+  <Text className="text-[40px] mb-3">🔍</Text>
+  <Text className="text-lg font-semibold text-[#1A1A2E] mb-1.5">No results found</Text>
+  <Text className="text-sm text-gray-400 text-center px-10">
+    Try searching by first name, last name, or phone number.
+  </Text>
+</View>
     )
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView className="flex-1 bg-[#F7F8FA]">
+  <StatusBar barStyle="dark-content" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Find Elderly</Text>
-        <Text style={styles.headerSub}>
-          Search by name or phone number to send a link request
-        </Text>
-      </View>
+  <View className="px-5 pt-5 pb-3">
+    <TouchableOpacity 
+        className="flex-row items-center mb-2"
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={20} color="#4F8EF7" />
+        <Text className="ml-1 text-[#4F8EF7] font-semibold text-sm">Back</Text>
+      </TouchableOpacity>
+      
+    <Text className="text-[26px] font-bold text-[#1A1A2E] mb-1">Find Elderly</Text>
+    <Text className="text-sm text-gray-400">
+      Search by name or phone number to send a link request
+    </Text>
+  </View>
 
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Text style={styles.searchIcon}>🔎</Text>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Name or phone number..."
-            placeholderTextColor="#aaa"
-            value={query}
-            onChangeText={handleSearch}
-            autoCorrect={false}
-            autoCapitalize="words"
-            clearButtonMode="while-editing"
-            returnKeyType="search"
-          />
-          {searching && (
-            <ActivityIndicator size="small" color="#4F8EF7" style={{ marginLeft: 8 }} />
-          )}
-        </View>
-      </View>
-
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.user_id}
-        renderItem={renderItem}
-        ListEmptyComponent={renderEmpty}
-        contentContainerStyle={[
-          styles.list,
-          results.length === 0 && styles.listEmpty,
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+  <View className="px-5 pb-4">
+    <View 
+      className="flex-row items-center bg-white rounded-[14px] px-3.5 py-3"
+      style={{
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+      }}
+    >
+      <Text className="text-base mr-2">🔎</Text>
+      <TextInput
+        className="flex-1 text-md text-[#1A1A2E]"
+        placeholder="Name or phone number..."
+        placeholderTextColor="#aaa"
+        value={query}
+        onChangeText={handleSearch}
+        autoCorrect={false}
+        autoCapitalize="words"
+        clearButtonMode="while-editing"
+        returnKeyType="search"
       />
-    </SafeAreaView>
+      {searching && (
+        <ActivityIndicator size="small" color="#4F8EF7" className="ml-2" />
+      )}
+    </View>
+  </View>
+
+  <FlatList
+    data={results}
+    keyExtractor={(item) => item.user_id}
+    renderItem={renderItem}
+    ListEmptyComponent={renderEmpty}
+    contentContainerStyle={[
+      { paddingHorizontal: 20, paddingBottom: 32 },
+      results.length === 0 && { flex: 1 },
+    ]}
+    keyboardShouldPersistTaps="handled"
+    showsVerticalScrollIndicator={false}
+  />
+</SafeAreaView>
   )
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#F7F8FA',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#1A1A2E',
-    marginBottom: 4,
-  },
-  headerSub: {
-    fontSize: 14,
-    color: '#888',
-  },
-  searchRow: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1A1A2E',
-  },
-  list: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-  },
-  listEmpty: {
-    flex: 1,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
-  },
-  avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#E8F0FE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#4F8EF7',
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A2E',
-    marginBottom: 2,
-  },
-  cardSub: {
-    fontSize: 13,
-    color: '#999',
-  },
-  requestBtn: {
-    backgroundColor: '#4F8EF7',
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    minWidth: 80,
-    alignItems: 'center',
-  },
-  requestBtnSent: {
-    backgroundColor: '#E8F5E9',
-  },
-  requestBtnLoading: {
-    backgroundColor: '#7AABF9',
-  },
-  requestBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  requestBtnTextSent: {
-    color: '#4CAF50',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 60,
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A2E',
-    marginBottom: 6,
-  },
-  emptySub: {
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  requestBtnLinked: {
-  backgroundColor: '#F0FDF4',
-  borderWidth: 1,
-  borderColor: '#86EFAC',
-},
-})

@@ -71,32 +71,38 @@ function calcAge(dob) {
 function ElderlySelector({ list, selected, onSelect }) {
   return (
     <View>
-      <Text style={st.sectionLabel}>Select Patient</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 20, paddingBottom: 4 }}>
-        {list.map(e => {
-          const active = selected?.user_id === e.user_id
-          const age = calcAge(e.date_of_birth)
-          return (
-            <TouchableOpacity
-              key={e.user_id}
-              style={[st.elderlyChip, active && st.elderlyChipActive]}
-              onPress={() => onSelect(e)}
-              activeOpacity={0.8}
-            >
-              <View style={[st.avatar, active && st.avatarActive]}>
-                <Text style={[st.avatarText, active && { color: C.primary }]}>
-                  {getInitials(e.first_name, e.last_name)}
-                </Text>
-              </View>
-              <Text style={[st.elderlyName, active && st.elderlyNameActive]}>
-                {e.first_name}
-              </Text>
-              {age ? <Text style={st.elderlyAge}>{age} yrs</Text> : null}
-            </TouchableOpacity>
-          )
-        })}
-      </ScrollView>
-    </View>
+  <Text className="text-xs font-bold text-[#9999AA] tracking-[0.8px] uppercase ml-5 mb-2.5">
+    Select Patient
+  </Text>
+  <ScrollView 
+    horizontal 
+    showsHorizontalScrollIndicator={false} 
+    contentContainerStyle={{ gap: 10, paddingHorizontal: 20, paddingBottom: 4 }}
+  >
+    {list.map(e => {
+      const active = selected?.user_id === e.user_id
+      const age = calcAge(e.date_of_birth)
+      return (
+        <TouchableOpacity
+          key={e.user_id}
+          className={`items-center py-2.5 px-3.5 rounded-2xl border-[1.5px] min-w-[72px] ${active ? 'border-[#3B5BDB] bg-[#EDF2FF]' : 'border-[#E2E8F0] bg-white'}`}
+          onPress={() => onSelect(e)}
+          activeOpacity={0.8}
+        >
+          <View className={`w-11 h-11 rounded-full items-center justify-center mb-1.5 ${active ? 'bg-[#C5D3FF]' : 'bg-[#E2E8F0]'}`}>
+            <Text className={`text-[15px] font-extrabold ${active ? 'text-[#3B5BDB]' : 'text-[#555570]'}`}>
+              {getInitials(e.first_name, e.last_name)}
+            </Text>
+          </View>
+          <Text className={`text-xs font-bold ${active ? 'text-[#3B5BDB]' : 'text-[#1A1A2E]'}`}>
+            {e.first_name}
+          </Text>
+          {age ? <Text className="text-[10px] text-[#9999AA] mt-0.5">{age} yrs</Text> : null}
+        </TouchableOpacity>
+      )
+    })}
+  </ScrollView>
+</View>
   )
 }
 
@@ -114,43 +120,53 @@ function MedCard({ med, onEdit, onDelete }) {
     .join(', ')
 
   return (
-    <TouchableOpacity style={st.card} onPress={() => setExpanded(e => !e)} activeOpacity={0.88}>
-      <View style={st.cardRow}>
-        {/* Photo */}
-        {med.photo_url
-          ? <Image source={{ uri: med.photo_url }} style={st.medPhoto} />
-          : <View style={[st.medPhoto, st.medPhotoPlaceholder]}><Text style={{ fontSize: 22 }}>💊</Text></View>
-        }
+    <TouchableOpacity 
+  className="bg-white rounded-2xl mx-5 mb-3 p-3.5"
+  style={{
+    shadowColor: C.shadow,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  }}
+  onPress={() => setExpanded(e => !e)} 
+  activeOpacity={0.88}
+>
+  <View className="flex-row items-center gap-3">
+    {/* Photo */}
+    {med.photo_url
+      ? <Image source={{ uri: med.photo_url }} className="w-[54px] h-[54px] rounded-lg" />
+      : <View className="w-[54px] h-[54px] rounded-lg bg-[#EEF2FF] items-center justify-center"><Text className="text-[22px]">💊</Text></View>
+    }
 
-        {/* Info */}
-        <View style={{ flex: 1 }}>
-          <Text style={st.medName}>{med.name}</Text>
-          {med.dosage ? <Text style={st.medDosage}>{med.dosage}</Text> : null}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-            {times ? <View style={st.pill}><Text style={st.pillText}>⏰ {times}</Text></View> : null}
-            {days  ? <View style={st.pill}><Text style={st.pillText}>{days}</Text></View>  : null}
-          </View>
-        </View>
-
-        <Text style={{ fontSize: 12, color: C.textLight, paddingLeft: 6 }}>{expanded ? '▲' : '▼'}</Text>
+    {/* Info */}
+    <View className="flex-1">
+      <Text className="text-[15px] font-bold text-[#1A1A2E]">{med.name}</Text>
+      {med.dosage ? <Text className="text-xs text-[#748FFC] font-semibold mt-0.5">{med.dosage}</Text> : null}
+      <View className="flex-row flex-wrap gap-1.5 mt-1">
+        {times ? <View className="bg-[#EDF2FF] rounded-full px-2 py-0.5"><Text className="text-[10px] text-[#3B5BDB] font-semibold">⏰ {times}</Text></View> : null}
+        {days  ? <View className="bg-[#EDF2FF] rounded-full px-2 py-0.5"><Text className="text-[10px] text-[#3B5BDB] font-semibold">{days}</Text></View>  : null}
       </View>
+    </View>
 
-      {expanded && (
-        <View style={st.cardExpanded}>
-          {med.purpose      ? <Text style={st.detail}><Text style={st.detailLabel}>Purpose: </Text>{med.purpose}</Text> : null}
-          {med.instructions ? <Text style={st.detail}><Text style={st.detailLabel}>Instructions: </Text>{med.instructions}</Text> : null}
+    <Text className="text-xs text-[#9999AA] pl-1.5">{expanded ? '▲' : '▼'}</Text>
+  </View>
 
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-            <TouchableOpacity style={[st.actionBtn, { backgroundColor: C.primaryBg }]} onPress={() => onEdit(med)}>
-              <Text style={[st.actionBtnText, { color: C.primary }]}>✏️  Edit</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[st.actionBtn, { backgroundColor: C.accentBg }]} onPress={() => onDelete(med)}>
-              <Text style={[st.actionBtnText, { color: C.accent }]}>🗑  Remove</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </TouchableOpacity>
+  {expanded && (
+    <View className="mt-3 pt-3 border-t border-[#E2E8F0]">
+      {med.purpose      ? <Text className="text-[15px] text-[#555570] mb-1 leading-[18px]"><Text className="font-bold text-[#1A1A2E]">Purpose: </Text>{med.purpose}</Text> : null}
+      {med.instructions ? <Text className="text-[15px] text-[#555570] mb-1 leading-[18px]"><Text className="font-bold text-[#1A1A2E]">Instructions: </Text>{med.instructions}</Text> : null}
+
+      <View className="flex-row gap-2.5 mt-3">
+        <TouchableOpacity className="flex-1 py-2.5 rounded-lg items-center bg-[#EDF2FF]" onPress={() => onEdit(med)}>
+          <Text className="font-bold text-[15px] text-[#3B5BDB]">✏️  Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity className="flex-1 py-2.5 rounded-lg items-center bg-[#FFF5F5]" onPress={() => onDelete(med)}>
+          <Text className="font-bold text-[15px] text-[#F03E3E]">🗑  Remove</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )}
+</TouchableOpacity>
   )
 }
 
@@ -214,71 +230,121 @@ function MedFormModal({ visible, initial, onClose, onSave, title }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView style={st.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={st.sheet}>
-          <View style={st.handle} />
-          <Text style={st.sheetTitle}>{title}</Text>
+  <KeyboardAvoidingView 
+    className="flex-1 justify-end bg-black-45%" 
+    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+  >
+    <View 
+      className="rounded-t-3xl p-6 max-h-[92%] bg-white"
+    >
+      <View className="w-10 h-1 bg-[#E2E8F0] rounded-full self-center mb-5" />
+      <Text className="text-xl font-extrabold text-[#1A1A2E] mb-5">{title}</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Photo */}
-            <Text style={st.label}>Photo</Text>
-            <View style={{ alignItems: 'center', marginBottom: 8 }}>
-              {form.photoUri
-                ? <Image source={{ uri: form.photoUri }} style={st.photoPreview} />
-                : <View style={st.photoPreviewEmpty}><Text style={{ fontSize: 36 }}>💊</Text><Text style={{ fontSize: 11, color: C.textMid, marginTop: 4 }}>Add a photo</Text></View>
-              }
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                <TouchableOpacity style={st.photoBtn} onPress={() => pickPhoto(true)}>
-                  <Text style={st.photoBtnText}>📷 Camera</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={st.photoBtn} onPress={() => pickPhoto(false)}>
-                  <Text style={st.photoBtnText}>🖼 Gallery</Text>
-                </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Photo */}
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Photo</Text>
+        <View className="items-center mb-2">
+          {form.photoUri
+            ? <Image source={{ uri: form.photoUri }} className="w-[110px] h-[110px] rounded-[14px]" />
+            : <View className="w-[110px] h-[110px] rounded-[14px] bg-[#EEF2FF] items-center justify-center">
+                <Text className="text-[36px]">💊</Text>
+                <Text className="text-[11px] text-[#555570] mt-1">Add a photo</Text>
               </View>
-            </View>
-
-            <Text style={st.label}>Name *</Text>
-            <TextInput style={st.input} placeholder="e.g. Metformin" value={form.name} onChangeText={v => set('name', v)} />
-
-            <Text style={st.label}>Purpose</Text>
-            <TextInput style={st.input} placeholder="e.g. Blood sugar control" value={form.purpose} onChangeText={v => set('purpose', v)} />
-
-            <Text style={st.label}>Dosage</Text>
-            <TextInput style={st.input} placeholder="e.g. 500mg" value={form.dosage} onChangeText={v => set('dosage', v)} />
-
-            <Text style={st.label}>Instructions</Text>
-            <TextInput style={[st.input, { height: 70 }]} placeholder="e.g. Take with food" multiline value={form.instructions} onChangeText={v => set('instructions', v)} />
-
-            <Text style={st.label}>Scheduled Time (HH:MM)</Text>
-            <TextInput style={st.input} placeholder="e.g. 08:00" value={form.scheduledTime} onChangeText={v => set('scheduledTime', v)} keyboardType="numbers-and-punctuation" />
-
-            <Text style={st.label}>Days of Week</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-              {DAYS.map(day => {
-                const on = form.daysOfWeek.includes(day)
-                return (
-                  <TouchableOpacity
-                    key={day}
-                    style={[st.dayChip, on && st.dayChipOn]}
-                    onPress={() => toggleDay(day)}
-                  >
-                    <Text style={[st.dayChipText, on && st.dayChipTextOn]}>{DAY_LABELS[day]}</Text>
-                  </TouchableOpacity>
-                )
-              })}
-            </View>
-
-            <TouchableOpacity style={[st.primaryBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={st.primaryBtnText}>Save</Text>}
+          }
+          <View className="flex-row gap-2.5 mt-2.5">
+            <TouchableOpacity 
+              className="flex-1 py-2.5 rounded-lg items-center border-[1.5px] bg-[#F4F6FA] border-[#E2E8F0]"
+              onPress={() => pickPhoto(true)}
+            >
+              <Text className="text-[15px] font-semibold text-[#1A1A2E]">📷 Camera</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity style={st.ghostBtn} onPress={onClose}>
-              <Text style={st.ghostBtnText}>Cancel</Text>
+            <TouchableOpacity 
+              className="flex-1 py-2.5 rounded-lg items-center border-[1.5px] bg-[#F4F6FA] border-[#E2E8F0]"
+              onPress={() => pickPhoto(false)}
+            >
+              <Text className="text-[15px] font-semibold text-[#1A1A2E]">🖼 Gallery</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         </View>
-      </KeyboardAvoidingView>
-    </Modal>
+
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Name *</Text>
+        <TextInput 
+          className="border-[1.5px] rounded-xl px-3.5 py-2.5 text-[15px] text-[#1A1A2E] bg-[#FAFAFA] border-[#E2E8F0]"
+          placeholder="e.g. Metformin" 
+          value={form.name} 
+          onChangeText={v => set('name', v)} 
+        />
+
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Purpose</Text>
+        <TextInput 
+          className="border-[1.5px] rounded-xl px-3.5 py-2.5 text-[15px] text-[#1A1A2E] bg-[#FAFAFA] border-[#E2E8F0]"
+          placeholder="e.g. Blood sugar control" 
+          value={form.purpose} 
+          onChangeText={v => set('purpose', v)} 
+        />
+
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Dosage</Text>
+        <TextInput 
+          className="border-[1.5px] rounded-xl px-3.5 py-2.5 text-[15px] text-[#1A1A2E] bg-[#FAFAFA] border-[#E2E8F0]"
+          placeholder="e.g. 500mg" 
+          value={form.dosage} 
+          onChangeText={v => set('dosage', v)} 
+        />
+
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Instructions</Text>
+        <TextInput 
+          className="border-[1.5px] rounded-xl px-3.5 py-2.5 text-[15px] text-[#1A1A2E] bg-[#FAFAFA] h-[70px] border-[#E2E8F0]"
+          placeholder="e.g. Take with food" 
+          multiline 
+          value={form.instructions} 
+          onChangeText={v => set('instructions', v)} 
+        />
+
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Scheduled Time (HH:MM)</Text>
+        <TextInput 
+          className="border-[1.5px] rounded-xl px-3.5 py-2.5 text-[15px] text-[#1A1A2E] bg-[#FAFAFA] border-[#E2E8F0]"
+          placeholder="e.g. 08:00" 
+          value={form.scheduledTime} 
+          onChangeText={v => set('scheduledTime', v)} 
+          keyboardType="numbers-and-punctuation" 
+        />
+
+        <Text className="text-[15px] font-bold text-[#1A1A2E] mb-1.5 mt-3.5">Days of Week</Text>
+        <View className="flex-row flex-wrap gap-2 mt-1">
+          {DAYS.map(day => {
+            const on = form.daysOfWeek.includes(day)
+            return (
+              <TouchableOpacity
+                key={day}
+                className={`px-3 py-1.5 rounded-full border-[1.5px] ${on ? 'bg-[#3B5BDB] border-[#3B5BDB]' : 'bg-[#F4F6FA] border-[#E2E8F0]'}`}
+                onPress={() => toggleDay(day)}
+              >
+                <Text className={`text-xs font-semibold ${on ? 'text-white' : 'text-[#9999AA]'}`}>
+                  {DAY_LABELS[day]}
+                </Text>
+              </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        <TouchableOpacity 
+          className={`mt-5 rounded-xl py-3.5 items-center ${saving ? 'opacity-60' : ''} bg-[#3B5BDB]`}
+          onPress={handleSave} 
+          disabled={saving}
+        >
+          {saving ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-extrabold text-base">Save</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          className="mt-2.5 py-3 items-center" 
+          onPress={onClose}
+        >
+          <Text className="text-[#555570] font-semibold text-sm">Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
   )
 }
 
@@ -361,235 +427,105 @@ export default function CaregiverMedicationsScreen() {
   // ── Render ──────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView style={st.safe}>
-        <View style={st.centered}>
-          <ActivityIndicator size="large" color={C.primary} />
-          <Text style={{ marginTop: 12, color: C.textMid }}>Loading patients…</Text>
-        </View>
-      </SafeAreaView>
+      <SafeAreaView className="flex-1 bg-[#FAFAFA]">
+  <View className="flex-1 items-center justify-center p-8">
+    <ActivityIndicator size="large" color={C.primary} />
+    <Text className="mt-3 text-[#555570]">Loading patients…</Text>
+  </View>
+</SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView style={st.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+    <SafeAreaView className="flex-1 bg-[#FAFAFA]">
+  <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
 
-      {/* Header */}
-      <View style={st.header}>
-        <View>
-          <Text style={st.headerTitle}>Medications</Text>
-          <Text style={st.headerSub}>Manage your patients' medications</Text>
+  {/* Header */}
+  <View className="flex-row justify-between items-center px-5 pt-4 pb-3">
+    <View>
+      <Text className="text-[28px] font-extrabold text-[#1A1A2E] tracking-[-0.5px]">Medications</Text>
+      <Text className="text-[15px] text-[#555570] mt-0.5">Manage your patients' medications</Text>
+    </View>
+    {selected && (
+      <TouchableOpacity 
+        className="bg-[#3B5BDB] rounded-full px-4 py-2"
+        onPress={() => setShowAdd(true)}
+      >
+        <Text className="text-white font-bold text-sm">+ Add</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+
+  {/* No patients linked */}
+  {elderlyList.length === 0 ? (
+    <View className="flex-1 items-center justify-center p-8">
+      <Text className="text-5xl mb-4">👥</Text>
+      <Text className="text-[17px] font-bold text-[#1A1A2E] mb-2">No patients linked</Text>
+      <Text className="text-sm text-[#555570] text-center leading-5">Link an elderly patient to your account first.</Text>
+    </View>
+  ) : (
+    <>
+      {/* Patient selector */}
+      <ElderlySelector list={elderlyList} selected={selected} onSelect={e => { setSelected(e); loadMeds(e.user_id) }} />
+
+      {/* Divider with patient name */}
+      {selected && (
+        <View className="flex-row items-center mx-5 mt-4 mb-2.5">
+          <View className="w-2 h-2 rounded-full bg-[#3B5BDB] mr-2" />
+          <Text className="text-[15px] font-semibold text-[#555570]">
+            {selected.first_name} {selected.last_name} — {meds.length} medication{meds.length !== 1 ? 's' : ''}
+          </Text>
         </View>
-        {selected && (
-          <TouchableOpacity style={st.addBtn} onPress={() => setShowAdd(true)}>
-            <Text style={st.addBtnText}>+ Add</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* No patients linked */}
-      {elderlyList.length === 0 ? (
-        <View style={st.centered}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>👥</Text>
-          <Text style={st.emptyTitle}>No patients linked</Text>
-          <Text style={st.emptyText}>Link an elderly patient to your account first.</Text>
-        </View>
-      ) : (
-        <>
-          {/* Patient selector */}
-          <ElderlySelector list={elderlyList} selected={selected} onSelect={e => { setSelected(e); loadMeds(e.user_id) }} />
-
-          {/* Divider with patient name */}
-          {selected && (
-            <View style={st.patientBar}>
-              <View style={st.patientBarDot} />
-              <Text style={st.patientBarText}>
-                {selected.first_name} {selected.last_name} — {meds.length} medication{meds.length !== 1 ? 's' : ''}
-              </Text>
-            </View>
-          )}
-
-          {/* Medications list */}
-          {loadingMeds ? (
-            <View style={st.centered}>
-              <ActivityIndicator color={C.primary} />
-            </View>
-          ) : meds.length === 0 ? (
-            <View style={st.centered}>
-              <Text style={{ fontSize: 44, marginBottom: 12 }}>💊</Text>
-              <Text style={st.emptyTitle}>No medications yet</Text>
-              <Text style={st.emptyText}>Tap "+ Add" to add a medication for {selected?.first_name}.</Text>
-              <TouchableOpacity style={[st.primaryBtn, { marginTop: 20, paddingHorizontal: 28 }]} onPress={() => setShowAdd(true)}>
-                <Text style={st.primaryBtnText}>+ Add Medication</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-              {meds.map(med => (
-                <MedCard
-                  key={med.medication_id}
-                  med={med}
-                  onEdit={m => setEditTarget(m)}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </ScrollView>
-          )}
-        </>
       )}
 
-      {/* Modals */}
-      <MedFormModal
-        visible={showAdd}
-        initial={null}
-        title={`Add for ${selected?.first_name ?? 'Patient'}`}
-        onClose={() => setShowAdd(false)}
-        onSave={handleAdd}
-      />
-      <MedFormModal
-        visible={!!editTarget}
-        initial={editTarget}
-        title="Edit Medication"
-        onClose={() => setEditTarget(null)}
-        onSave={handleEdit}
-      />
-    </SafeAreaView>
+      {/* Medications list */}
+      {loadingMeds ? (
+        <View className="flex-1 items-center justify-center p-8">
+          <ActivityIndicator className="text-[#3B5BDB]" />
+        </View>
+      ) : meds.length === 0 ? (
+        <View className="flex-1 items-center justify-center p-8">
+          <Text className="text-[44px] mb-3">💊</Text>
+          <Text className="text-[17px] font-bold text-[#1A1A2E] mb-2">No medications yet</Text>
+          <Text className="text-sm text-[#555570] text-center leading-5">Tap "+ Add" to add a medication for {selected?.first_name}.</Text>
+          <TouchableOpacity 
+            className="mt-5 rounded-xl py-3.5 items-center px-7 bg-[#3B5BDB]"
+            onPress={() => setShowAdd(true)}
+          >
+            <Text className="text-white font-extrabold text-base">+ Add Medication</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          {meds.map(med => (
+            <MedCard
+              key={med.medication_id}
+              med={med}
+              onEdit={m => setEditTarget(m)}
+              onDelete={handleDelete}
+            />
+          ))}
+        </ScrollView>
+      )}
+    </>
+  )}
+
+  {/* Modals */}
+  <MedFormModal
+    visible={showAdd}
+    initial={null}
+    title={`Add for ${selected?.first_name ?? 'Patient'}`}
+    onClose={() => setShowAdd(false)}
+    onSave={handleAdd}
+  />
+  <MedFormModal
+    visible={!!editTarget}
+    initial={editTarget}
+    title="Edit Medication"
+    onClose={() => setEditTarget(null)}
+    onSave={handleEdit}
+  />
+</SafeAreaView>
   )
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const st = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: C.bg },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-
-  // Header
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12,
-  },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  headerSub:   { fontSize: 13, color: C.textMid, marginTop: 2 },
-  addBtn: {
-    backgroundColor: C.primary, borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 8,
-  },
-  addBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-
-  // Section label
-  sectionLabel: {
-    fontSize: 12, fontWeight: '700', color: C.textLight,
-    letterSpacing: 0.8, textTransform: 'uppercase',
-    marginLeft: 20, marginBottom: 10,
-  },
-
-  // Elderly chips
-  elderlyChip: {
-    alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14,
-    backgroundColor: C.card, borderRadius: 16,
-    borderWidth: 1.5, borderColor: C.border,
-    minWidth: 72,
-  },
-  elderlyChipActive: {
-    borderColor: C.primary, backgroundColor: C.primaryBg,
-  },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: C.border, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 6,
-  },
-  avatarActive: { backgroundColor: '#C5D3FF' },
-  avatarText:   { fontSize: 15, fontWeight: '800', color: C.textMid },
-  elderlyName:  { fontSize: 12, fontWeight: '700', color: C.text },
-  elderlyNameActive: { color: C.primary },
-  elderlyAge:   { fontSize: 10, color: C.textLight, marginTop: 1 },
-
-  // Patient bar
-  patientBar: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 20, marginTop: 16, marginBottom: 10,
-  },
-  patientBarDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: C.primary, marginRight: 8,
-  },
-  patientBarText: { fontSize: 13, fontWeight: '600', color: C.textMid },
-
-  // Med card
-  card: {
-    backgroundColor: C.card, borderRadius: 16,
-    marginHorizontal: 20, marginBottom: 12,
-    padding: 14,
-    shadowColor: C.shadow, shadowOpacity: 0.15, shadowRadius: 8, elevation: 3,
-  },
-  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  medPhoto: { width: 54, height: 54, borderRadius: 10 },
-  medPhotoPlaceholder: {
-    backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
-  },
-  medName:   { fontSize: 15, fontWeight: '700', color: C.text },
-  medDosage: { fontSize: 12, color: C.primaryLight, fontWeight: '600', marginTop: 2 },
-  pill: {
-    backgroundColor: C.primaryBg, borderRadius: 20,
-    paddingHorizontal: 8, paddingVertical: 3,
-  },
-  pillText: { fontSize: 10, color: C.primary, fontWeight: '600' },
-  cardExpanded: {
-    marginTop: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: C.border,
-  },
-  detail:      { fontSize: 13, color: C.textMid, marginBottom: 5, lineHeight: 18 },
-  detailLabel: { fontWeight: '700', color: C.text },
-  actionBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
-  },
-  actionBtnText: { fontWeight: '700', fontSize: 13 },
-
-  // Empty
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 8 },
-  emptyText:  { fontSize: 14, color: C.textMid, textAlign: 'center', lineHeight: 20 },
-
-  // Modal
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, maxHeight: '92%',
-  },
-  handle: {
-    width: 40, height: 4, backgroundColor: C.border,
-    borderRadius: 2, alignSelf: 'center', marginBottom: 20,
-  },
-  sheetTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 20 },
-  label:  { fontSize: 13, fontWeight: '700', color: C.text, marginBottom: 6, marginTop: 14 },
-  input: {
-    borderWidth: 1.5, borderColor: C.border, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: C.text,
-    backgroundColor: '#FAFAFA',
-  },
-
-  // Photo
-  photoPreview:      { width: 110, height: 110, borderRadius: 14 },
-  photoPreviewEmpty: {
-    width: 110, height: 110, borderRadius: 14,
-    backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
-  },
-  photoBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center',
-  },
-  photoBtnText: { fontSize: 13, fontWeight: '600', color: C.text },
-
-  // Day chips
-  dayChip:     { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
-  dayChipOn:   { backgroundColor: C.primary, borderColor: C.primary },
-  dayChipText: { fontSize: 12, fontWeight: '600', color: C.textMid },
-  dayChipTextOn: { color: '#fff' },
-
-  // Buttons
-  primaryBtn: {
-    marginTop: 20, backgroundColor: C.primary, borderRadius: 14,
-    paddingVertical: 15, alignItems: 'center',
-  },
-  primaryBtnText: { color: '#fff', fontWeight: '800', fontSize: 16 },
-  ghostBtn:     { marginTop: 10, paddingVertical: 12, alignItems: 'center' },
-  ghostBtnText: { color: C.textMid, fontWeight: '600', fontSize: 14 },
-})

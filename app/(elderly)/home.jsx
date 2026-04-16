@@ -143,348 +143,177 @@ export default function ElderlyHome() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
+      <View className="flex-1 justify-center items-center bg-white">
+  <ActivityIndicator size="large" className="text-[#007AFF]" />
+</View>
     )
   }
 
   return (
     <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.userName}>
-            {user?.first_name} {user?.last_name} 👋
-          </Text>
-        </View>
-        <View style={styles.dateContainer}>
-          <Text style={styles.dateText}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </Text>
-        </View>
-      </View>
+  className="flex-1 bg-[#F8F9FA]"
+  contentContainerStyle={{ paddingBottom: 32 }}
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+  }
+>
+  {/* Header */}
+  <View
+    className="flex-row bg-[#5B8CFF] justify-between items-center px-6 pt-[60px] pb-6"
+  >
+    <View>
+      <Text className="text-sm text-white-800" >
+        {getGreeting()}
+      </Text>
+      <Text className="text-[22px] font-bold text-white mt-0.5">
+        {user?.first_name} {user?.last_name} 👋
+      </Text>
+    </View>
+    <View className="rounded-lg px-2.5 py-1.5 bg-white-200">
+      <Text className="text-white text-[13px] font-semibold">
+        {new Date().toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        })}
+      </Text>
+    </View>
+  </View>
 
-      {/* SOS Button */}
-      <View style={styles.sosContainer}>
-        <TouchableOpacity
-          style={[styles.sosButton, sosLoading && styles.sosButtonDisabled]}
-          onPress={handleSOS}
-          disabled={sosLoading}
-          activeOpacity={0.8}
+  {/* SOS Button */}
+  <View
+    className="items-center py-8 bg-white mb-4"
+    style={{
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 3,
+    }}
+  >
+    <TouchableOpacity
+      className={`w-[180px] h-[180px] rounded-full justify-center items-center border-[6px] ${sosLoading ? 'opacity-70' : ''}
+      bg-[#E63946] border-[#C1121F]`}
+      style={{
+        shadowColor: COLORS.danger,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 12,
+      }}
+      onPress={handleSOS}
+      disabled={sosLoading}
+      activeOpacity={0.8}
+    >
+      {sosLoading ? (
+        <ActivityIndicator size="large" color="#fff" />
+      ) : (
+        <>
+          <Text className="text-[48px] mb-1">🆘</Text>
+          <Text className="text-[32px] font-black text-white tracking-[4px]">SOS</Text>
+          <Text className="text-[11px] mt-0.5 text-white-900" >
+            Press for Emergency
+          </Text>
+        </>
+      )}
+    </TouchableOpacity>
+    <Text className="mt-4 text-[13px] text-[#666666]">
+      Tap to call your caregiver immediately
+    </Text>
+  </View>
+
+  {/* Medications Today */}
+  <View className="mx-4 mb-4">
+    <View className="flex-row items-center mb-3 gap-2">
+      <Ionicons name="medical" size={20} className="text-[#007AFF]" />
+      <Text className="text-[17px] font-bold flex-1 text-[#1A1A2D]">
+        Today's Medications
+      </Text>
+      {pendingMeds.length > 0 && (
+        <View
+          className="rounded-xl px-2 py-0.5 bg-[#E63946]"
         >
-          {sosLoading ? (
-            <ActivityIndicator size="large" color={COLORS.white} />
-          ) : (
-            <>
-              <Text style={styles.sosIcon}>🆘</Text>
-              <Text style={styles.sosText}>SOS</Text>
-              <Text style={styles.sosSubtext}>Press for Emergency</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.sosHint}>
-          Tap to call your caregiver immediately
+          <Text className="text-white text-xs font-bold">{pendingMeds.length}</Text>
+        </View>
+      )}
+    </View>
+
+    {medications.length === 0 ? (
+      <View
+        className="bg-white rounded-xl p-5 items-center border border-[#E0E0E0]"
+      >
+        <Text className="text-[15px] text-[#666666]" >
+          ✅ No medications today
         </Text>
       </View>
-
-      {/* Medications Today */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="medical" size={20} color={COLORS.primary} />
-          <Text style={styles.sectionTitle}>Today's Medications</Text>
-          {pendingMeds.length > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingMeds.length}</Text>
-            </View>
-          )}
-        </View>
-
-        {medications.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>✅ No medications today</Text>
+    ) : (
+      medications.map((med, index) => (
+        <View
+          key={index}
+          className="bg-white rounded-xl p-4 mb-2 flex-row items-center border border-[#E0E0E0]"
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.04,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
+          <View className="flex-1">
+            <Text className="text-base font-bold text-[#1A1A2D]" >
+              {med.name}
+            </Text>
+            <Text className="text-[13px] mt-0.5 text-[#666666]" >
+              {med.dosage}
+            </Text>
+            <Text className="text-[13px] mt-1 font-semibold text-[#007AFF]" >
+              🕐 {med.scheduled_time?.slice(0, 5)}
+            </Text>
           </View>
-        ) : (
-          medications.map((med, index) => (
-            <View key={index} style={styles.medCard}>
-              <View style={styles.medInfo}>
-                <Text style={styles.medName}>{med.name}</Text>
-                <Text style={styles.medDosage}>{med.dosage}</Text>
-                <Text style={styles.medTime}>
-                  🕐 {med.scheduled_time?.slice(0, 5)}
-                </Text>
-              </View>
-              <View style={styles.medStatus}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={28}
-                  color={COLORS.border}
-                />
-              </View>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* Health Summary */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="heart" size={20} color={COLORS.danger} />
-          <Text style={styles.sectionTitle}>Health Summary</Text>
+          <View className="ml-3">
+            <Ionicons name="checkmark-circle" size={28} className="border border-[#E0E0E0]" />
+          </View>
         </View>
+      ))
+    )}
+  </View>
 
-        <View style={styles.healthGrid}>
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>❤️</Text>
-            <Text style={styles.healthLabel}>Blood Pressure</Text>
-            <Text style={styles.healthValue}>-- / --</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
+  {/* Health Summary */}
+  <View className="mx-4 mb-4">
+    <View className="flex-row items-center mb-3 gap-2">
+      <Ionicons name="heart" size={20} className="text-[#E63946]" />
+      <Text className="text-[17px] font-bold flex-1 text-[#1A1A2D]" >
+        Health Summary
+      </Text>
+    </View>
 
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>😊</Text>
-            <Text style={styles.healthLabel}>Today's Mood</Text>
-            <Text style={styles.healthValue}>--</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
+    <View className="flex-row flex-wrap gap-[10px]">
+      {[
+        { emoji: '❤️', label: 'Blood Pressure', value: '-- / --' },
+        { emoji: '😊', label: "Today's Mood",   value: '--'       },
+        { emoji: '😴', label: 'Last Sleep',      value: '-- hrs'  },
+        { emoji: '🩸', label: 'Blood Sugar',     value: '-- mg'   },
+      ].map(({ emoji, label, value }) => (
+        <TouchableOpacity
+          key={label}
+          className="bg-white rounded-xl p-4 items-center border w-47% border-[#E0E0E0]"
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.04,
+            shadowRadius: 4,
+            elevation: 1,
+          }}
+        >
+          <Text className="text-[28px] mb-2">{emoji}</Text>
+          <Text className="text-xs text-center text-[#666666]">{label}</Text>
+          <Text className="text-[18px] font-bold mt-1 text-[#1A1A2D]" >{value}</Text>
+          <Text className="text-[11px] mt-1 text-[#007AFF]" >Tap to log</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  </View>
 
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>😴</Text>
-            <Text style={styles.healthLabel}>Last Sleep</Text>
-            <Text style={styles.healthValue}>-- hrs</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.healthCard}>
-            <Text style={styles.healthEmoji}>🩸</Text>
-            <Text style={styles.healthLabel}>Blood Sugar</Text>
-            <Text style={styles.healthValue}>-- mg</Text>
-            <Text style={styles.healthHint}>Tap to log</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-    </ScrollView>
+</ScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    paddingBottom: 32,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
-    backgroundColor: COLORS.primary,
-  },
-  greeting: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginTop: 2,
-  },
-  dateContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  dateText: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  sosContainer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: COLORS.white,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  sosButton: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: COLORS.danger,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: COLORS.danger,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
-    borderWidth: 6,
-    borderColor: COLORS.dangerDark,
-  },
-  sosButtonDisabled: {
-    opacity: 0.7,
-  },
-  sosIcon: {
-    fontSize: 48,
-    marginBottom: 4,
-  },
-  sosText: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: COLORS.white,
-    letterSpacing: 4,
-  },
-  sosSubtext: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 2,
-  },
-  sosHint: {
-    marginTop: 16,
-    fontSize: 13,
-    color: COLORS.subtle,
-  },
-  section: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: COLORS.text,
-    flex: 1,
-  },
-  badge: {
-    backgroundColor: COLORS.danger,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badgeText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  emptyCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: COLORS.subtle,
-  },
-  medCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  medInfo: {
-    flex: 1,
-  },
-  medName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  medDosage: {
-    fontSize: 13,
-    color: COLORS.subtle,
-    marginTop: 2,
-  },
-  medTime: {
-    fontSize: 13,
-    color: COLORS.primary,
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  medStatus: {
-    marginLeft: 12,
-  },
-  healthGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  healthCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    width: '47%',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  healthEmoji: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  healthLabel: {
-    fontSize: 12,
-    color: COLORS.subtle,
-    textAlign: 'center',
-  },
-  healthValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginTop: 4,
-  },
-  healthHint: {
-    fontSize: 11,
-    color: COLORS.primary,
-    marginTop: 4,
-  },
-})

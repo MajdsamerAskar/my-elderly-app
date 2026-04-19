@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native'
+import DateTimePicker from '@react-native-community/datetimepicker'
 import {
   logBiometricReading,
   logSleepSession,
@@ -20,7 +21,7 @@ import {
 import { formatDuration } from './HealthSections';
 
 // ─────────────────────────────────────────────
-// HELPERS (duplicated for self-containment)
+// HELPERS
 // ─────────────────────────────────────────────
 
 function toISODateTime(date, timeString) {
@@ -34,18 +35,136 @@ function toISODateTime(date, timeString) {
 function getTimeFromISO(isoString) {
   if (!isoString) return '';
   const d = new Date(isoString);
-  return d.toTimeString().slice(0, 5);
+  return d.toTimeString().slice(0, 5); // "HH:MM"
 }
 
 function calculateDurationMinutes(startISO, endISO) {
   if (!startISO || !endISO) return 0;
-  const start = new Date(startISO);
-  const end = new Date(endISO);
-  return Math.round((end - start) / (1000 * 60));
+  return Math.round((new Date(endISO) - new Date(startISO)) / (1000 * 60));
 }
 
 function scaleTo5(value) {
   return Math.ceil(value / 2);
+}
+
+// Build a Date object from a "HH:MM" string (today's date, time only matters)
+function timeStringToDate(timeString) {
+  if (!timeString) return new Date();
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}
+
+function dateToTimeString(date) {
+  return date.toTimeString().slice(0, 5); // "HH:MM"
+}
+
+function formatDisplayTime(timeString) {
+  if (!timeString) return '—';
+  const [h, m] = timeString.split(':').map(Number);
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
+}
+
+// ─────────────────────────────────────────────
+// TIME PICKER COMPONENT
+// ─────────────────────────────────────────────
+
+function TimePicker({ label, value, onChange }) {
+  // value: "HH:MM" string
+  const [showAndroid, setShowAndroid] = useState(false);
+  const [showIOSModal, setShowIOSModal] = useState(false);
+  const [tempDate, setTempDate] = useState(timeStringToDate(value));
+
+  const onAndroidChange = (event, selected) => {
+    setShowAndroid(false);
+    if (event.type === 'set' && selected) {
+      onChange(dateToTimeString(selected));
+    }
+  };
+
+  const openIOS = () => {
+    setTempDate(timeStringToDate(value));
+    setShowIOSModal(true);
+  };
+
+  const confirmIOS = () => {
+    onChange(dateToTimeString(tempDate));
+    setShowIOSModal(false);
+  };
+
+  return (
+    <>
+      <TouchableOpacity
+        className="border border-gray-300 rounded-xl p-4 flex-row items-center justify-between bg-white"
+        onPress={Platform.OS === 'ios' ? openIOS : () => setShowAndroid(true)}
+        activeOpacity={0.7}
+      >
+        <Text className="text-lg font-medium text-gray-900">
+          {value ? formatDisplayTime(value) : '—'}
+        </Text>
+        <Text className="text-lg">🕐</Text>
+      </TouchableOpacity>
+
+      {/* Android native time dialog */}
+      {Platform.OS === 'android' && showAndroid && (
+        <DateTimePicker
+          value={timeStringToDate(value)}
+          mode="time"
+          is24Hour={false}
+          display="default"
+          onChange={onAndroidChange}
+        />
+      )}
+
+      {/* iOS bottom-sheet modal */}
+      {Platform.OS === 'ios' && (
+        <Modal
+          visible={showIOSModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowIOSModal(false)}
+        >
+          <TouchableOpacity
+            className="flex-1 bg-black/40"
+            activeOpacity={1}
+            onPress={() => setShowIOSModal(false)}
+          />
+          <View className="bg-white rounded-t-3xl px-5 pb-8 pt-4">
+            <View className="w-10 h-1 rounded-full bg-gray-200 self-center mb-4" />
+            <Text className="text-[18px] font-bold text-gray-900 text-center mb-2">
+              {label}
+            </Text>
+            <DateTimePicker
+              value={tempDate}
+              mode="time"
+              display="spinner"
+              is24Hour={false}
+              onChange={(_, selected) => selected && setTempDate(selected)}
+              style={{ height: 180 }}
+              textColor="#111827"
+            />
+            <View className="flex-row gap-3 mt-4">
+              <TouchableOpacity
+                className="flex-1 border border-gray-200 rounded-xl py-3.5 items-center"
+                onPress={() => setShowIOSModal(false)}
+              >
+                <Text className="text-gray-700 font-semibold text-[16px]">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-1 bg-blue-500 rounded-xl py-3.5 items-center"
+                onPress={confirmIOS}
+              >
+                <Text className="text-white font-bold text-[16px]">Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+    </>
+  );
 }
 
 // ─────────────────────────────────────────────
@@ -63,20 +182,16 @@ function BiometricsForm({ mode, initialData, onClose, onSaved }) {
       Alert.alert("Error", "Please enter both heart rate and blood oxygen");
       return;
     }
-    
     const hr = parseInt(heartRate);
     const sp = parseInt(spo2);
-    
     if (hr < 30 || hr > 250) {
       Alert.alert("Error", "Please enter a valid heart rate (30-250 bpm)");
       return;
     }
-    
     if (sp < 50 || sp > 100) {
       Alert.alert("Error", "Please enter a valid SpO2 percentage (50-100%)");
       return;
     }
-
     setLoading(true);
     try {
       await Promise.all([
@@ -100,26 +215,19 @@ function BiometricsForm({ mode, initialData, onClose, onSaved }) {
 
       <Text className="text-md font-medium text-gray-700 mb-3">Source</Text>
       <View className="flex-row gap-3 mb-6">
-        <TouchableOpacity
-          onPress={() => setSource('watch')}
-          className={`flex-1 py-4 rounded-xl border-2 items-center ${
-            source === 'watch' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-          }`}
-        >
-          <Text className={`font-medium ${source === 'watch' ? 'text-blue-600' : 'text-gray-600'} text-md`}>
-            ⌚ Watch
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setSource('manual')}
-          className={`flex-1 py-4 rounded-xl border-2 items-center ${
-            source === 'manual' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-          }`}
-        >
-          <Text className={`font-medium ${source === 'manual' ? 'text-blue-600' : 'text-gray-600'} text-md`}>
-            ✋ Manual
-          </Text>
-        </TouchableOpacity>
+        {['watch', 'manual'].map((s) => (
+          <TouchableOpacity
+            key={s}
+            onPress={() => setSource(s)}
+            className={`flex-1 py-4 rounded-xl border-2 items-center ${
+              source === s ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+            }`}
+          >
+            <Text className={`font-medium text-md ${source === s ? 'text-blue-600' : 'text-gray-600'}`}>
+              {s === 'watch' ? '⌚ Watch' : '✋ Manual'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <Text className="text-md font-medium text-gray-700 mb-2">Heart Rate (beats per minute)</Text>
@@ -165,19 +273,38 @@ function BiometricsForm({ mode, initialData, onClose, onSaved }) {
 function SleepForm({ mode, initialData, onClose, onSaved }) {
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-  
-  const [bedTime, setBedTime] = useState(initialData ? getTimeFromISO(initialData.sleep_start) : '22:00');
-  const [wakeTime, setWakeTime] = useState(initialData ? getTimeFromISO(initialData.sleep_end) : '07:00');
-  const [date, setDate] = useState(initialData ? initialData.sleep_start.split('T')[0] : yesterday);
-  const [rating, setRating] = useState(initialData?.quality_score ? (initialData.quality_score * 2).toString() : '7');
+
+  const [bedTime, setBedTime] = useState(
+    initialData ? getTimeFromISO(initialData.sleep_start) : '22:00'
+  );
+  const [wakeTime, setWakeTime] = useState(
+    initialData ? getTimeFromISO(initialData.sleep_end) : '07:00'
+  );
+  const [date, setDate] = useState(
+    initialData ? initialData.sleep_start.split('T')[0] : yesterday
+  );
+  const [rating, setRating] = useState(
+    initialData?.quality_score ? (initialData.quality_score * 2).toString() : '7'
+  );
   const [loading, setLoading] = useState(false);
+
+  const getDurationPreview = () => {
+    if (!bedTime || !wakeTime) return null;
+    const bedISO = toISODateTime(date, bedTime);
+    let wakeISO = toISODateTime(date, wakeTime);
+    if (new Date(wakeISO) <= new Date(bedISO)) {
+      const nextDay = new Date(date);
+      nextDay.setDate(nextDay.getDate() + 1);
+      wakeISO = toISODateTime(nextDay.toISOString().split('T')[0], wakeTime);
+    }
+    return calculateDurationMinutes(bedISO, wakeISO);
+  };
 
   const handleSave = async () => {
     if (!bedTime || !wakeTime || !rating) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
-
     const ratingNum = parseInt(rating);
     if (ratingNum < 1 || ratingNum > 10) {
       Alert.alert("Error", "Rating must be between 1 and 10");
@@ -186,7 +313,6 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
 
     let sleepStart = toISODateTime(date, bedTime);
     let sleepEnd = toISODateTime(date, wakeTime);
-    
     if (new Date(sleepEnd) <= new Date(sleepStart)) {
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);
@@ -194,7 +320,6 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
     }
 
     const durationMinutes = calculateDurationMinutes(sleepStart, sleepEnd);
-
     if (durationMinutes < 30 || durationMinutes > 960) {
       Alert.alert("Error", "Sleep duration seems unusual. Please check your times.");
       return;
@@ -216,23 +341,8 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
     }
   };
 
+  const durationMins = getDurationPreview();
   const ratings = Array.from({ length: 10 }, (_, i) => i + 1);
-
-  const getDurationPreview = () => {
-    if (!bedTime || !wakeTime) return null;
-    
-    const bedDateTime = toISODateTime(date, bedTime);
-    let wakeDateTime = toISODateTime(date, wakeTime);
-    
-    // If wake time is earlier than bed time, assume next day
-    if (new Date(wakeDateTime) <= new Date(bedDateTime)) {
-      const nextDay = new Date(date);
-      nextDay.setDate(nextDay.getDate() + 1);
-      wakeDateTime = toISODateTime(nextDay.toISOString().split('T')[0], wakeTime);
-    }
-    
-    return calculateDurationMinutes(bedDateTime, wakeDateTime);
-  };
 
   return (
     <ScrollView className="p-5" showsVerticalScrollIndicator={false}>
@@ -241,68 +351,50 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
       </Text>
       <Text className="text-base text-gray-500 mb-6">How did you sleep?</Text>
 
+      {/* Night selector */}
       <Text className="text-md font-medium text-gray-700 mb-2">Night of</Text>
-      <View className="flex-row gap-3 mb-5">
-        <TouchableOpacity
-          onPress={() => setDate(yesterday)}
-          className={`flex-1 py-3 rounded-xl border-2 items-center ${
-            date === yesterday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-          }`}
-        >
-          <Text className={date === yesterday ? 'text-blue-600 font-medium' : 'text-gray-600'}>
-            Last Night
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setDate(today)}
-          className={`flex-1 py-3 rounded-xl border-2 items-center ${
-            date === today ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-          }`}
-        >
-          <Text className={date === today ? 'text-blue-600 font-medium' : 'text-gray-600'}>
-            Tonight (nap)
-          </Text>
-        </TouchableOpacity>
+      <View className="flex-row gap-3 mb-6">
+        {[
+          { label: 'Last Night', value: yesterday },
+          { label: 'Tonight (nap)', value: today },
+        ].map((opt) => (
+          <TouchableOpacity
+            key={opt.value}
+            onPress={() => setDate(opt.value)}
+            className={`flex-1 py-3 rounded-xl border-2 items-center ${
+              date === opt.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+            }`}
+          >
+            <Text className={date === opt.value ? 'text-blue-600 font-medium' : 'text-gray-600'}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      <View className="flex-row gap-4 mb-5">
+      {/* ── Time pickers ── */}
+      <View className="flex-row gap-4 mb-2">
         <View className="flex-1">
           <Text className="text-md font-medium text-gray-700 mb-2">Bedtime</Text>
-          <TextInput
-            className="border border-gray-300 rounded-xl p-4 text-lg text-center"
-            placeholder="22:00"
-            value={bedTime}
-            onChangeText={setBedTime}
-            maxLength={5}
-          />
+          <TimePicker label="Bedtime" value={bedTime} onChange={setBedTime} />
         </View>
         <View className="flex-1">
           <Text className="text-md font-medium text-gray-700 mb-2">Wake Time</Text>
-          <TextInput
-            className="border border-gray-300 rounded-xl p-4 text-lg text-center"
-            placeholder="07:00"
-            value={wakeTime}
-            onChangeText={setWakeTime}
-            maxLength={5}
-          />
+          <TimePicker label="Wake Time" value={wakeTime} onChange={setWakeTime} />
         </View>
       </View>
 
-      {bedTime && wakeTime && (
-        <View className="bg-gray-50 rounded-xl p-4 mb-6">
-          <Text className="text-center text-gray-600">
-            Duration: <Text className="font-bold text-gray-900">{
-              formatDuration(calculateDurationMinutes(
-                toISODateTime(date, bedTime),
-                toISODateTime(date, wakeTime) > toISODateTime(date, bedTime) 
-                  ? toISODateTime(date, wakeTime)
-                  : toISODateTime(new Date(Date.now() + 86400000).toISOString().split('T')[0], wakeTime)
-              ))
-            }</Text>
+      {/* Duration preview */}
+      {durationMins != null && durationMins > 0 && (
+        <View className="bg-gray-50 rounded-xl p-4 mb-6 mt-3">
+          <Text className="text-center text-gray-600 text-base">
+            Duration:{' '}
+            <Text className="font-bold text-gray-900">{formatDuration(durationMins)}</Text>
           </Text>
         </View>
       )}
 
+      {/* Quality rating */}
       <Text className="text-md font-medium text-gray-700 mb-3">Sleep Quality (1-10)</Text>
       <View className="flex-row flex-wrap gap-2 mb-6">
         {ratings.map((num) => (
@@ -310,10 +402,12 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
             key={num}
             onPress={() => setRating(num.toString())}
             className={`w-10 h-10 rounded-full items-center justify-center border-2 ${
-              rating === num.toString() ? 'border-blue-500 bg-blue-500' : 'border-gray-200 bg-white'
+              rating === num.toString()
+                ? 'border-blue-500 bg-blue-500'
+                : 'border-gray-200 bg-white'
             }`}
           >
-            <Text className={`${rating === num.toString() ? 'text-white font-bold' : 'text-gray-700'} text-md`}>
+            <Text className={`text-md ${rating === num.toString() ? 'text-white font-bold' : 'text-gray-700'}`}>
               {num}
             </Text>
           </TouchableOpacity>
@@ -321,7 +415,11 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
       </View>
 
       <View className="flex-row gap-3 mb-6">
-        <TouchableOpacity className="flex-1 bg-gray-100 rounded-xl py-4 items-center" onPress={onClose} disabled={loading}>
+        <TouchableOpacity
+          className="flex-1 bg-gray-100 rounded-xl py-4 items-center"
+          onPress={onClose}
+          disabled={loading}
+        >
           <Text className="text-base font-medium text-gray-700">Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -329,7 +427,10 @@ function SleepForm({ mode, initialData, onClose, onSaved }) {
           onPress={handleSave}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="white" /> : <Text className="text-base font-medium text-white">Save</Text>}
+          {loading
+            ? <ActivityIndicator color="white" />
+            : <Text className="text-base font-medium text-white">Save</Text>
+          }
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -346,24 +447,16 @@ function ActivityForm({ mode, initialData, onClose, onSaved }) {
       Alert.alert("Error", "Please enter activity name and duration");
       return;
     }
-
     const durationNum = parseInt(duration);
     if (durationNum < 1 || durationNum > 480) {
       Alert.alert("Error", "Duration must be between 1 and 480 minutes");
       return;
     }
-
     setLoading(true);
     try {
       const endedAt = new Date().toISOString();
       const startedAt = new Date(Date.now() - durationNum * 60000).toISOString();
-      
-      await logActivity({
-        activityId: null,
-        startedAt,
-        endedAt,
-        notes: activityName.trim(),
-      });
+      await logActivity({ activityId: null, startedAt, endedAt, notes: activityName.trim() });
       onSaved?.();
     } catch (e) {
       Alert.alert("Error", e.message || "Failed to save activity");
@@ -406,7 +499,6 @@ function ActivityForm({ mode, initialData, onClose, onSaved }) {
           </TouchableOpacity>
         ))}
       </View>
-      
       <TextInput
         className="border border-gray-300 rounded-xl p-4 text-lg mb-8"
         placeholder="Or enter custom duration"
@@ -440,17 +532,9 @@ function WellnessForm({ mode, initialData, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
-    if (!rating) {
-      Alert.alert("Error", "Please select a rating");
-      return;
-    }
-
+    if (!rating) { Alert.alert("Error", "Please select a rating"); return; }
     const ratingNum = parseInt(rating);
-    if (ratingNum < 1 || ratingNum > 10) {
-      Alert.alert("Error", "Rating must be between 1 and 10");
-      return;
-    }
-
+    if (ratingNum < 1 || ratingNum > 10) { Alert.alert("Error", "Rating must be between 1 and 10"); return; }
     setLoading(true);
     try {
       await submitWellnessCheckin(scaleTo5(ratingNum), notes.trim() || null);
@@ -463,21 +547,8 @@ function WellnessForm({ mode, initialData, onClose, onSaved }) {
   };
 
   const ratings = Array.from({ length: 10 }, (_, i) => i + 1);
-  const getEmoji = (score) => {
-    if (score >= 9) return '😄';
-    if (score >= 7) return '🙂';
-    if (score >= 5) return '😐';
-    if (score >= 3) return '😕';
-    return '😔';
-  };
-
-  const getLabel = (score) => {
-    if (score >= 9) return 'Excellent';
-    if (score >= 7) return 'Good';
-    if (score >= 5) return 'Okay';
-    if (score >= 3) return 'Not great';
-    return 'Struggling';
-  };
+  const getEmoji = (s) => s >= 9 ? '😄' : s >= 7 ? '🙂' : s >= 5 ? '😐' : s >= 3 ? '😕' : '😔';
+  const getLabel = (s) => s >= 9 ? 'Excellent' : s >= 7 ? 'Good' : s >= 5 ? 'Okay' : s >= 3 ? 'Not great' : 'Struggling';
 
   return (
     <ScrollView className="p-5" showsVerticalScrollIndicator={false}>
@@ -545,27 +616,13 @@ function WellnessForm({ mode, initialData, onClose, onSaved }) {
 
 export function HealthModal({ visible, config, onClose }) {
   if (!config) return null;
-
   const { type, mode, initialData, onSaved } = config;
-
-  const MODALS = {
-    biometrics: BiometricsForm,
-    sleep: SleepForm,
-    activity: ActivityForm,
-    wellness: WellnessForm,
-  };
-
+  const MODALS = { biometrics: BiometricsForm, sleep: SleepForm, activity: ActivityForm, wellness: WellnessForm };
   const ActiveComponent = MODALS[type];
-
   if (!ActiveComponent) return null;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
         className="flex-1 justify-end bg-black/50"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -576,10 +633,7 @@ export function HealthModal({ visible, config, onClose }) {
             mode={mode}
             initialData={initialData}
             onClose={onClose}
-            onSaved={() => {
-              onSaved?.();
-              onClose();
-            }}
+            onSaved={() => { onSaved?.(); onClose(); }}
           />
         </View>
       </KeyboardAvoidingView>

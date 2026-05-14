@@ -1,9 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  View, Text, StyleSheet, TouchableOpacity, Alert,
-  ActivityIndicator, ScrollView, Dimensions
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Dimensions,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native'
 import MapView, { Marker, Circle } from 'react-native-maps'
+import { useTranslation } from 'react-i18next'
+import { useTheme } from '../../ThemeContext'
 import { getCurrentUser } from '../../services/auth.service'
 import { getLatestElderlyLocation } from '../../services/location.service'
 import { saveGeoFence, getActiveFence } from '../../services/geofence.service'
@@ -12,155 +21,147 @@ import { supabase } from '../../lib/supabase'
 
 const { height } = Dimensions.get('window')
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function getInitials(first, last) {
   return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase()
 }
+
 function calcAge(dob) {
   if (!dob) return null
   return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
 }
 
-// ─── ElderlySelector ─────────────────────────────────────────────────────────
 function ElderlySelector({ list, selected, onSelect }) {
+  const { t } = useTranslation()
+
   if (!list.length) return null
+
   return (
-    <View style={sel.wrapper}>
-      <Text style={sel.label}>Select Patient</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={sel.row}
-      >
-        {list.map((e) => {
-          const active = selected?.user_id === e.user_id
-          const age    = calcAge(e.date_of_birth)
-          return (
-            <TouchableOpacity
-              key={e.user_id}
-              style={[sel.chip, active && sel.chipActive]}
-              onPress={() => onSelect(e)}
-              activeOpacity={0.8}
-            >
-              <View style={[sel.avatar, active && sel.avatarActive]}>
-                <Text style={[sel.initials, active && sel.initialsActive]}>
-                  {getInitials(e.first_name, e.last_name)}
+    <View className="mb-4">
+      <Text className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3">
+        {t('selectPatient') || 'Select patient'}
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row gap-3 pb-1">
+          {list.map((elderly) => {
+            const active = selected?.user_id === elderly.user_id
+            const age = calcAge(elderly.date_of_birth)
+
+            return (
+              <TouchableOpacity
+                key={elderly.user_id}
+                className={`items-center py-2.5 px-3.5 rounded-2xl border min-w-[72px] ${
+                  active
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                    : 'border-border bg-surface'
+                }`}
+                onPress={() => onSelect(elderly)}
+                activeOpacity={0.8}
+              >
+                <View
+                  className={`w-11 h-11 rounded-full items-center justify-center mb-1.5 ${
+                    active
+                      ? 'bg-blue-100 dark:bg-blue-900/50'
+                      : 'bg-gray-100 dark:bg-gray-800'
+                  }`}
+                >
+                  <Text
+                    className={`text-base font-bold ${
+                      active ? 'text-blue-600 dark:text-blue-300' : 'text-text-secondary'
+                    }`}
+                  >
+                    {getInitials(elderly.first_name, elderly.last_name)}
+                  </Text>
+                </View>
+                <Text
+                  className={`text-sm font-bold ${
+                    active ? 'text-blue-600 dark:text-blue-300' : 'text-text'
+                  }`}
+                >
+                  {elderly.first_name}
                 </Text>
-              </View>
-              <Text style={[sel.name, active && sel.nameActive]}>{e.first_name}</Text>
-              {age ? <Text style={sel.age}>{age} yrs</Text> : null}
-            </TouchableOpacity>
-          )
-        })}
+                {age ? (
+                  <Text className="text-xs text-text-secondary mt-0.5">
+                    {age} {t('yearsAbbrev') || 'yrs'}
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
+            )
+          })}
+        </View>
       </ScrollView>
     </View>
   )
 }
 
-const sel = StyleSheet.create({
-  wrapper: { marginBottom: 4 },
-  label: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9999AA',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginLeft: 0,
-    marginBottom: 10,
-  },
-  row: { gap: 10, paddingBottom: 4 },
-  chip: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFF',
-    minWidth: 72,
-  },
-  chipActive:     { borderColor: '#0070f3', backgroundColor: '#EDF2FF' },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#E2E8F0', marginBottom: 6,
-  },
-  avatarActive:   { backgroundColor: '#C5D3FF' },
-  initials:       { fontSize: 15, fontWeight: '800', color: '#555570' },
-  initialsActive: { color: '#0070f3' },
-  name:           { fontSize: 12, fontWeight: '700', color: '#1A1A2E' },
-  nameActive:     { color: '#0070f3' },
-  age:            { fontSize: 10, color: '#9999AA', marginTop: 2 },
-})
-
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function CaregiverHome() {
-  const [linkedPatients,  setLinkedPatients]  = useState([])
+  const { t } = useTranslation()
+  const { isDark } = useTheme()
+
+  const [linkedPatients, setLinkedPatients] = useState([])
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [loadingPatients, setLoadingPatients] = useState(true)
-
   const [elderlyLocation, setElderlyLocation] = useState(null)
-  const [fence,           setFence]           = useState(null)
-  const [pendingFence,    setPendingFence]     = useState(null)
-  const [loadingData,     setLoadingData]      = useState(false)
+  const [fence, setFence] = useState(null)
+  const [pendingFence, setPendingFence] = useState(null)
+  const [loadingData, setLoadingData] = useState(false)
 
-  const mapRef     = useRef(null)
-  const pollRef    = useRef(null)
+  const mapRef = useRef(null)
+  const pollRef = useRef(null)
 
-  // ── 1. Load caregiver + linked patients once ───────────────
   useEffect(() => {
     ;(async () => {
       try {
-        const user    = await getCurrentUser()
-        const linked  = await getLinkedElderly(user.user_id)
+        const user = await getCurrentUser()
+        const linked = await getLinkedElderly(user.user_id)
 
-        // getLinkedElderly may return partial objects — enrich with DOB if missing
-        // by querying users table for date_of_birth
         let patients = linked
         if (linked.length && !linked[0].date_of_birth) {
-          const ids = linked.map(p => p.user_id)
+          const ids = linked.map((patient) => patient.user_id)
           const { data } = await supabase
             .from('users')
             .select('user_id, first_name, last_name, date_of_birth, profile_photo_url')
             .in('user_id', ids)
+
           if (data) patients = data
         }
 
         setLinkedPatients(patients)
         if (patients.length) setSelectedPatient(patients[0])
-      } catch (e) {
-        console.warn('Failed to load patients:', e.message)
+      } catch (error) {
+        console.warn('Failed to load patients:', error.message)
       } finally {
         setLoadingPatients(false)
       }
     })()
   }, [])
 
-  // ── 2. Load location + fence when selected patient changes ─
   const loadPatientData = useCallback(async (patient) => {
     if (!patient) return
+
     setLoadingData(true)
     setElderlyLocation(null)
     setFence(null)
     setPendingFence(null)
+
     try {
-      const [loc, activeFence] = await Promise.all([
+      const [location, activeFence] = await Promise.all([
         getLatestElderlyLocation(patient.user_id),
         getActiveFence(patient.user_id),
       ])
-      setElderlyLocation(loc)
+
+      setElderlyLocation(location)
       setFence(activeFence)
 
-      if (loc && mapRef.current) {
+      if (location && mapRef.current) {
         mapRef.current.animateToRegion({
-          latitude:      loc.latitude,
-          longitude:     loc.longitude,
+          latitude: location.latitude,
+          longitude: location.longitude,
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }, 800)
       }
-    } catch (e) {
-      console.warn('Patient data error:', e.message)
+    } catch (error) {
+      console.warn('Patient data error:', error.message)
     } finally {
       setLoadingData(false)
     }
@@ -168,28 +169,26 @@ export default function CaregiverHome() {
 
   useEffect(() => {
     loadPatientData(selectedPatient)
-  }, [selectedPatient])
+  }, [loadPatientData, selectedPatient])
 
-  // ── 3. Poll location every 30s for selected patient ────────
   useEffect(() => {
     if (pollRef.current) clearInterval(pollRef.current)
     if (!selectedPatient) return
 
     pollRef.current = setInterval(async () => {
       try {
-        const loc = await getLatestElderlyLocation(selectedPatient.user_id)
-        setElderlyLocation(loc)
-      } catch (e) {
-        console.warn('Poll error:', e.message)
+        const location = await getLatestElderlyLocation(selectedPatient.user_id)
+        setElderlyLocation(location)
+      } catch (error) {
+        console.warn('Poll error:', error.message)
       }
     }, 30_000)
 
     return () => clearInterval(pollRef.current)
   }, [selectedPatient])
 
-  // ── Map press ──────────────────────────────────────────────
-  const handleMapPress = (e) => {
-    const { latitude, longitude } = e.nativeEvent.coordinate
+  function handleMapPress(event) {
+    const { latitude, longitude } = event.nativeEvent.coordinate
     if (pendingFence) {
       setPendingFence({ ...pendingFence, latitude, longitude })
     } else {
@@ -197,237 +196,213 @@ export default function CaregiverHome() {
     }
   }
 
-  // ── Save fence ─────────────────────────────────────────────
-  const saveFence = async () => {
+  async function handleSaveFence() {
     if (!pendingFence || !selectedPatient) return
+
     try {
       const saved = await saveGeoFence({
         userId: selectedPatient.user_id,
-        name: 'Safe Zone',
+        name: t('safeZone') || 'Safe Zone',
         ...pendingFence,
       })
+
       setFence(saved)
       setPendingFence(null)
-      Alert.alert('Saved', 'Geo-fence saved successfully.')
-    } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(
+        t('saved') || 'Saved',
+        t('geofenceSaved') || 'Geo-fence saved successfully.'
+      )
+    } catch (error) {
+      Alert.alert(t('error') || 'Error', error.message)
     }
   }
 
-  // ── Map initial region ─────────────────────────────────────
   const initialRegion = elderlyLocation
     ? {
-        latitude:      elderlyLocation.latitude,
-        longitude:     elderlyLocation.longitude,
+        latitude: elderlyLocation.latitude,
+        longitude: elderlyLocation.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       }
-    : { latitude: 33.3152, longitude: 44.3661, latitudeDelta: 0.05, longitudeDelta: 0.05 }
+    : {
+        latitude: 33.3152,
+        longitude: 44.3661,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }
 
-  // ─────────────────────────────────────────────────────────────
   if (loadingPatients) {
     return (
-      <View style={styles.centerLoad}>
-        <ActivityIndicator size="large" color="#0070f3" />
-      </View>
+      <SafeAreaView className="flex-1 bg-background">
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#0070F3" />
+          <Text className="text-text-secondary mt-4">
+            {t('loadingPatients') || 'Loading patients...'}
+          </Text>
+        </View>
+      </SafeAreaView>
     )
   }
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.content}
-    >
-      {/* ── Header ── */}
-      <Text style={styles.title}>Patient Overview</Text>
+    <SafeAreaView className="flex-1 bg-background">
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* ── Patient selector ── */}
-      {linkedPatients.length === 0 ? (
-        <View style={styles.noPatientsBox}>
-          <Text style={styles.noPatientsText}>
-            No linked patients yet. Send a request to get started.
-          </Text>
-        </View>
-      ) : (
-        <ElderlySelector
-          list={linkedPatients}
-          selected={selectedPatient}
-          onSelect={(p) => setSelectedPatient(p)}
-        />
-      )}
+      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-10">
+        <Text className="text-2xl font-bold text-text mb-1">
+          {t('patientOverview') || 'Patient overview'}
+        </Text>
+        <Text className="text-text-secondary mb-5">
+          {t('caregiverHomeSubtitle') || 'Check location updates and manage safe zones'}
+        </Text>
 
-      {/* ── Loading indicator while switching patients ── */}
-      {loadingData && (
-        <View style={styles.dataLoad}>
-          <ActivityIndicator size="small" color="#0070f3" />
-          <Text style={styles.dataLoadText}>Loading patient data…</Text>
-        </View>
-      )}
+        {linkedPatients.length === 0 ? (
+          <View className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-2xl p-4">
+            <Text className="text-yellow-800 dark:text-yellow-200 text-center">
+              {t('noLinkedPatientsYet') || 'No linked patients yet. Send a request to get started.'}
+            </Text>
+          </View>
+        ) : (
+          <ElderlySelector
+            list={linkedPatients}
+            selected={selectedPatient}
+            onSelect={setSelectedPatient}
+          />
+        )}
 
-      {/* ── No location banner ── */}
-      {!loadingData && selectedPatient && !elderlyLocation && (
-        <View style={styles.warnBanner}>
-          <Text style={styles.warnText}>
-            No location data yet for {selectedPatient.first_name}.
-          </Text>
-        </View>
-      )}
+        {loadingData ? (
+          <View className="flex-row items-center gap-2 py-3">
+            <ActivityIndicator size="small" color="#0070F3" />
+            <Text className="text-text-secondary">
+              {t('loadingPatientData') || 'Loading patient data...'}
+            </Text>
+          </View>
+        ) : null}
 
-      {/* ── Map card ── */}
-      {selectedPatient && (
-        <View style={styles.mapCard}>
-          <MapView
-            ref={mapRef}
-            style={{ width: '100%', height: height * 0.35 }}
-            initialRegion={initialRegion}
-            onPress={handleMapPress}
-          >
-            {elderlyLocation && (
-              <Marker
-                coordinate={{
-                  latitude:  elderlyLocation.latitude,
-                  longitude: elderlyLocation.longitude,
-                }}
-                title={`${selectedPatient.first_name}'s Location`}
-                pinColor="blue"
-              />
-            )}
+        {!loadingData && selectedPatient && !elderlyLocation ? (
+          <View className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-2xl p-4 mb-4">
+            <Text className="text-yellow-800 dark:text-yellow-200 text-center">
+              {t('noLocationDataForPatient', {
+                name: selectedPatient.first_name,
+                defaultValue: `No location data yet for ${selectedPatient.first_name}.`,
+              })}
+            </Text>
+          </View>
+        ) : null}
 
-            {fence && (
-              <Circle
-                center={{
-                  latitude:  Number(fence.center_latitude),
-                  longitude: Number(fence.center_longitude),
-                }}
-                radius={fence.radius_meters}
-                fillColor="rgba(0,150,255,0.15)"
-                strokeColor="rgba(0,100,255,0.5)"
-                strokeWidth={2}
-              />
-            )}
-
-            {pendingFence && (
-              <>
-                <Circle
-                  center={{
-                    latitude:  pendingFence.latitude,
-                    longitude: pendingFence.longitude,
-                  }}
-                  radius={pendingFence.radiusMeters}
-                  fillColor="rgba(255,165,0,0.15)"
-                  strokeColor="rgba(255,140,0,0.7)"
-                  strokeWidth={2}
-                />
+        {selectedPatient ? (
+          <View className="rounded-2xl overflow-hidden border border-border bg-surface">
+            <MapView
+              ref={mapRef}
+              style={{ width: '100%', height: height * 0.35 }}
+              initialRegion={initialRegion}
+              onPress={handleMapPress}
+            >
+              {elderlyLocation ? (
                 <Marker
                   coordinate={{
-                    latitude:  pendingFence.latitude,
-                    longitude: pendingFence.longitude,
+                    latitude: elderlyLocation.latitude,
+                    longitude: elderlyLocation.longitude,
                   }}
-                  pinColor="orange"
-                  title="Tap map to reposition"
+                  title={t('patientLocationTitle', {
+                    name: selectedPatient.first_name,
+                    defaultValue: `${selectedPatient.first_name}'s Location`,
+                  })}
+                  pinColor="blue"
                 />
-              </>
-            )}
-          </MapView>
-        </View>
-      )}
+              ) : null}
 
-      {/* ── Fence controls ── */}
-      {pendingFence && (
-        <View style={styles.fenceCard}>
-          <Text style={styles.fenceHint}>Tap map to move · + / − to resize</Text>
-          <View style={styles.fenceRow}>
-            <Text style={styles.fenceRadius}>Radius: {pendingFence.radiusMeters}m</Text>
-            <TouchableOpacity
-              style={styles.fenceBtn}
-              onPress={() =>
-                setPendingFence(p => ({ ...p, radiusMeters: Math.max(10, p.radiusMeters - 10) }))
-              }
-            >
-              <Text style={styles.fenceBtnText}>−</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.fenceBtn}
-              onPress={() =>
-                setPendingFence(p => ({ ...p, radiusMeters: p.radiusMeters + 10 }))
-              }
-            >
-              <Text style={styles.fenceBtnText}>+</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveFenceBtn} onPress={saveFence}>
-              <Text style={styles.saveFenceBtnText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setPendingFence(null)}>
-              <Text style={styles.resetText}>Reset</Text>
-            </TouchableOpacity>
+              {fence ? (
+                <Circle
+                  center={{
+                    latitude: Number(fence.center_latitude),
+                    longitude: Number(fence.center_longitude),
+                  }}
+                  radius={fence.radius_meters}
+                  fillColor="rgba(0,150,255,0.15)"
+                  strokeColor="rgba(0,100,255,0.5)"
+                  strokeWidth={2}
+                />
+              ) : null}
+
+              {pendingFence ? (
+                <>
+                  <Circle
+                    center={{
+                      latitude: pendingFence.latitude,
+                      longitude: pendingFence.longitude,
+                    }}
+                    radius={pendingFence.radiusMeters}
+                    fillColor="rgba(255,165,0,0.15)"
+                    strokeColor="rgba(255,140,0,0.7)"
+                    strokeWidth={2}
+                  />
+                  <Marker
+                    coordinate={{
+                      latitude: pendingFence.latitude,
+                      longitude: pendingFence.longitude,
+                    }}
+                    pinColor="orange"
+                    title={t('tapMapToReposition') || 'Tap map to reposition'}
+                  />
+                </>
+              ) : null}
+            </MapView>
           </View>
-        </View>
-      )}
+        ) : null}
 
-      {/* ── Add more home screen sections below here ── */}
-
-    </ScrollView>
+        {pendingFence ? (
+          <View className="bg-surface rounded-2xl p-4 border border-border mt-4">
+            <Text className="text-sm text-text-secondary mb-3">
+              {t('tapMapMoveResizeFence') || 'Tap map to move · + / - to resize'}
+            </Text>
+            <View className="flex-row items-center flex-wrap gap-2">
+              <Text className="flex-1 text-base text-text">
+                {t('radiusMeters', {
+                  radius: pendingFence.radiusMeters,
+                  defaultValue: `Radius: ${pendingFence.radiusMeters}m`,
+                })}
+              </Text>
+              <TouchableOpacity
+                className="px-3 py-1.5 rounded-lg bg-background border border-border"
+                onPress={() =>
+                  setPendingFence((value) => ({
+                    ...value,
+                    radiusMeters: Math.max(10, value.radiusMeters - 10),
+                  }))
+                }
+              >
+                <Text className="text-xl text-text">-</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="px-3 py-1.5 rounded-lg bg-background border border-border"
+                onPress={() =>
+                  setPendingFence((value) => ({
+                    ...value,
+                    radiusMeters: value.radiusMeters + 10,
+                  }))
+                }
+              >
+                <Text className="text-xl text-text">+</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-primary_blue rounded-lg px-4 py-2.5"
+                onPress={handleSaveFence}
+              >
+                <Text className="text-white font-semibold">
+                  {t('save') || 'Save'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setPendingFence(null)}>
+                <Text className="text-red-600 dark:text-red-300 font-semibold px-2">
+                  {t('reset') || 'Reset'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   )
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  centerLoad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll:   { flex: 1, backgroundColor: '#F5F5F5' },
-  content:  { padding: 16, gap: 12, paddingBottom: 40 },
-
-  title: { fontSize: 20, fontWeight: '600', color: '#111827', marginBottom: 4 },
-
-  // No patients
-  noPatientsBox: {
-    backgroundColor: '#FFF3CD',
-    borderRadius: 10,
-    padding: 12,
-  },
-  noPatientsText: { color: '#856404', textAlign: 'center', fontSize: 13 },
-
-  // Loading while switching
-  dataLoad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 6,
-  },
-  dataLoadText: { fontSize: 13, color: '#9999AA' },
-
-  // Warning banner
-  warnBanner: {
-    backgroundColor: '#FFF3CD',
-    padding: 10,
-    borderRadius: 10,
-  },
-  warnText: { color: '#856404', textAlign: 'center', fontSize: 13 },
-
-  // Map
-  mapCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-
-  // Fence controls
-  fenceCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  fenceHint:   { fontSize: 12, color: '#6B7280', marginBottom: 8 },
-  fenceRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  fenceRadius: { flex: 1, fontSize: 14, color: '#1F2937' },
-  fenceBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  fenceBtnText:    { fontSize: 22, color: '#1F2937' },
-  saveFenceBtn:    { backgroundColor: '#0070f3', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  saveFenceBtnText:{ color: '#FFF', fontWeight: '600', fontSize: 14 },
-  resetText:       { color: '#E63946', fontWeight: '600', fontSize: 14, paddingHorizontal: 4 },
-})

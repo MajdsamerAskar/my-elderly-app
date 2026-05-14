@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --background: 245 245 245;      /* #F5F5F5 */
+  --surface: 255 255 255;         /* #FFFFFF */
+  --text: 26 26 46;               /* #1A1A2E */
+  --text-secondary: 107 114 128;  /* gray-500 */
+  --border: 229 231 235;          /* gray-200 */
+}
+
+.dark {
+  --background: 26 26 46;         /* #1A1A2E */
+  --surface: 22 33 62;            /* #16213E */
+  --text: 245 245 245;            /* #F5F5F5 */
+  --text-secondary: 156 163 175;  /* gray-400 */
+  --border: 51 65 85;             /* slate-700 */
+}

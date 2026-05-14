@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useTheme } from '../../ThemeContext' 
 import {
   View,
   Text,
@@ -9,12 +11,10 @@ import {
   Image,
   ActivityIndicator,
   Alert,
-  StyleSheet,
   SafeAreaView,
   StatusBar,
   Platform,
   KeyboardAvoidingView,
-  FlatList,
   Dimensions,
 } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
@@ -35,30 +35,6 @@ const { width } = Dimensions.get('window')
 const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const DAY_LABELS = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' }
 
-// ─── Color tokens ─────────────────────────────────────────────────────────────
-const C = {
-  bg:          '#F7F3EE',
-  card:        '#FFFFFF',
-  primary:     '#2D6A4F',
-  primaryLight:'#52B788',
-  accent:      '#E76F51',
-  accentLight: '#FDDAC9',
-  warn:        '#F4A261',
-  warnLight:   '#FDEBD0',
-  text:        '#1A1A2E',
-  textMid:     '#555570',
-  textLight:   '#9999AA',
-  border:      '#E8E4DE',
-  taken:       '#52B788',
-  takenBg:     '#D8F3DC',
-  missed:      '#E63946',
-  missedBg:    '#FFE5E7',
-  pending:     '#F4A261',
-  pendingBg:   '#FEF0E3',
-  shadow:      'rgba(45,106,79,0.12)',
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatTime(timeStr) {
   if (!timeStr) return ''
   const [h, m] = timeStr.split(':')
@@ -69,11 +45,12 @@ function formatTime(timeStr) {
 }
 
 function StatusBadge({ status }) {
+  const { t } = useTranslation()
   const configs = {
-    taken:   { label: 'Taken ✓',   bg: 'bg-green-100',   color: 'text-green-700' },
-    missed:  { label: 'Missed',    bg: 'bg-red-100',     color: 'text-red-700' },
-    skipped: { label: 'Skipped',   bg: 'bg-yellow-100',  color: 'text-yellow-700' },
-    pending: { label: 'Pending',     bg: 'bg-orange-100', color: 'text-orange-700' },
+    taken:   { label: t('taken') || 'Taken ✓',   bg: 'bg-green-100 dark:bg-green-900/30',   color: 'text-green-700 dark:text-green-400' },
+    missed:  { label: t('missed') || 'Missed',    bg: 'bg-red-100 dark:bg-red-900/30',     color: 'text-red-700 dark:text-red-400' },
+    skipped: { label: t('skipped') || 'Skipped',   bg: 'bg-yellow-100 dark:bg-yellow-900/30',  color: 'text-yellow-700 dark:text-yellow-400' },
+    pending: { label: t('pending') || 'Pending',     bg: 'bg-orange-100 dark:bg-orange-900/30', color: 'text-orange-700 dark:text-orange-400' },
   }
   const cfg = configs[status] || configs.pending
   
@@ -84,55 +61,52 @@ function StatusBadge({ status }) {
   )
 }
 
-// ─── Today Med Card ───────────────────────────────────────────────────────────
 function TodayMedCard({ med, onConfirm }) {
+  const { t } = useTranslation()
   const isTaken = med.status === 'taken'
 
   return (
-    <View className={`flex-row items-center p-4 mb-3 rounded-xl border ${isTaken ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100'} shadow-sm`}>
-  {/* Photo */}
-  <View className="mr-3">
-    {med.photo_url ? (
-      <Image source={{ uri: med.photo_url }} className="w-14 h-14 rounded-lg" />
-    ) : (
-      <View className="w-14 h-14 rounded-lg bg-gray-100 items-center justify-center">
-        <Text className="text-2xl">💊</Text>
+    <View className={`flex-row items-center p-4 mb-3 rounded-xl border ${isTaken ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-surface border-border'} shadow-sm`}>
+      <View className="mr-3">
+        {med.photo_url ? (
+          <Image source={{ uri: med.photo_url }} className="w-14 h-14 rounded-lg" />
+        ) : (
+          <View className="w-14 h-14 rounded-lg bg-gray-100 dark:bg-gray-800 items-center justify-center">
+            <Text className="text-2xl">💊</Text>
+          </View>
+        )}
       </View>
-    )}
-  </View>
 
-  {/* Info */}
-  <View className="flex-1">
-    <Text className={`text-base font-bold ${isTaken ? 'text-green-800' : 'text-gray-900'}`}>{med.name}</Text>
-    {med.dosage ? <Text className="text-md text-gray-500 mt-0.5">{med.dosage}</Text> : null}
-    <Text className="text-md text-blue-600 mt-0.5">⏰ {formatTime(med.scheduled_time)}</Text>
-    {med.purpose ? <Text className="text-md text-gray-400 mt-0.5">{med.purpose}</Text> : null}
-  </View>
+      <View className="flex-1">
+        <Text className={`text-base font-bold ${isTaken ? 'text-green-800 dark:text-green-200' : 'text-text'}`}>{med.name}</Text>
+        {med.dosage ? <Text className="text-md text-text-secondary mt-0.5">{med.dosage}</Text> : null}
+        <Text className="text-md text-primary mt-0.5">⏰ {formatTime(med.scheduled_time)}</Text>
+        {med.purpose ? <Text className="text-md text-text-secondary mt-0.5">{med.purpose}</Text> : null}
+      </View>
 
-  {/* Status / Action */}
-  <View className="ml-2">
-    {isTaken ? (
-      <StatusBadge status="taken" />
-    ) : (
-      <TouchableOpacity
-        className="bg-blue-600 px-4 py-2 rounded-lg"
-        onPress={() => onConfirm(med)}
-        activeOpacity={0.8}
-      >
-        <Text className="text-white font-semibold text-md">Confirm</Text>
-      </TouchableOpacity>
-    )}
-  </View>
-</View>
+      <View className="ml-2">
+        {isTaken ? (
+          <StatusBadge status="taken" />
+        ) : (
+          <TouchableOpacity
+            className="bg-primary_blue px-4 py-2 rounded-lg"
+            onPress={() => onConfirm(med)}
+            activeOpacity={0.8}
+          >
+            <Text className="text-white font-semibold text-md">{t('confirm') || 'Confirm'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
   )
 }
 
-// ─── All-Med Card ─────────────────────────────────────────────────────────────
 function AllMedCard({ med, onDelete, onEdit }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const dayLabels = med.medication_schedules
     ?.flatMap(s => s.medication_schedule_days?.map(d => DAY_LABELS[d.day_of_week]) || [])
-    .filter((v, i, a) => a.indexOf(v) === i) // unique
+    .filter((v, i, a) => a.indexOf(v) === i)
     .join(', ')
 
   const times = med.medication_schedules
@@ -141,62 +115,61 @@ function AllMedCard({ med, onDelete, onEdit }) {
 
   return (
     <TouchableOpacity
-  className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100"
-  onPress={() => setExpanded(e => !e)}
-  activeOpacity={0.85}
->
-  <View className="flex-row items-center">
-    {/* Photo */}
-    <View className="mr-3">
-      {med.photo_url ? (
-        <Image source={{ uri: med.photo_url }} className="w-14 h-14 rounded-lg" />
-      ) : (
-        <View className="w-14 h-14 rounded-lg bg-gray-100 items-center justify-center">
-          <Text className="text-2xl">💊</Text>
+      className="bg-surface rounded-xl p-4 mb-3 shadow-sm border border-border"
+      onPress={() => setExpanded(e => !e)}
+      activeOpacity={0.85}
+    >
+      <View className="flex-row items-center">
+        <View className="mr-3">
+          {med.photo_url ? (
+            <Image source={{ uri: med.photo_url }} className="w-14 h-14 rounded-lg" />
+          ) : (
+            <View className="w-14 h-14 rounded-lg bg-gray-100 dark:bg-gray-800 items-center justify-center">
+              <Text className="text-2xl">💊</Text>
+            </View>
+          )}
+        </View>
+
+        <View className="flex-1">
+          <Text className="text-base text-lg font-bold text-text">{med.name}</Text>
+          {med.dosage ? <Text className="text-md text-text-secondary mt-0.5">{med.dosage}</Text> : null}
+          {times ? <Text className="text-md text-primary mt-0.5">⏰ {times}</Text> : null}
+          {dayLabels ? <Text className="text-md text-text-secondary mt-0.5">{dayLabels}</Text> : null}
+        </View>
+
+        <Text className="text-lg text-text-secondary ml-2">{expanded ? '▲' : '▼'}</Text>
+      </View>
+
+      {expanded && (
+        <View className="mt-4 pt-4 border-t border-border">
+          {med.purpose ? (
+            <Text className="text-md text-text-secondary mb-2"><Text className="font-semibold text-text">{t('purpose') || 'Purpose'}: </Text>{med.purpose}</Text>
+          ) : null}
+          {med.instructions ? (
+            <Text className="text-md text-text-secondary mb-4"><Text className="font-semibold text-text">{t('instructions') || 'Instructions'}: </Text>{med.instructions}</Text>
+          ) : null}
+
+          <TouchableOpacity
+            className="bg-red-50 dark:bg-red-900/20 py-3 rounded-lg items-center mb-2"
+            onPress={() => onDelete(med)}
+          >
+            <Text className="text-red-600 dark:text-red-400 font-semibold">🗑  {t('removeMedication') || 'Remove Medication'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className="bg-blue-50 dark:bg-blue-900/20 py-3 rounded-lg items-center"
+            onPress={() => onEdit(med)}
+          >
+            <Text className="text-blue-600 dark:text-blue-400 font-semibold">✏️  {t('editMedication') || 'Edit Medication'}</Text>
+          </TouchableOpacity>
         </View>
       )}
-    </View>
-
-    {/* Name + dosage */}
-    <View className="flex-1">
-      <Text className="text-base text-lg font-bold text-gray-900">{med.name}</Text>
-      {med.dosage ? <Text className="text-md text-gray-500 mt-0.5">{med.dosage}</Text> : null}
-      {times ? <Text className="text-md text-blue-600 mt-0.5">⏰ {times}</Text> : null}
-      {dayLabels ? <Text className="text-md text-gray-400 mt-0.5">{dayLabels}</Text> : null}
-    </View>
-
-    <Text className="text-lg text-gray-400 ml-2">{expanded ? '▲' : '▼'}</Text>
-  </View>
-
-  {expanded && (
-    <View className="mt-4 pt-4 border-t border-gray-100">
-      {med.purpose ? (
-        <Text className="text-md text-gray-600 mb-2"><Text className="font-semibold text-gray-700">Purpose: </Text>{med.purpose}</Text>
-      ) : null}
-      {med.instructions ? (
-        <Text className="text-md text-gray-600 mb-4"><Text className="font-semibold text-gray-700">Instructions: </Text>{med.instructions}</Text>
-      ) : null}
-
-      <TouchableOpacity
-        className="bg-red-50 py-3 rounded-lg items-center mb-2"
-        onPress={() => onDelete(med)}
-      >
-        <Text className="text-red-600 font-semibold">🗑  Remove Medication</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        className="bg-blue-50 py-3 rounded-lg items-center"
-        onPress={() => onEdit(med)}
-      >
-        <Text className="text-blue-600 font-semibold">✏️  Edit Medication</Text>
-      </TouchableOpacity>
-    </View>
-  )}
-</TouchableOpacity>
+    </TouchableOpacity>
   )
 }
 
-// ─── Add Medication Modal ─────────────────────────────────────────────────────
 function AddMedModal({ visible, onClose, onSave }) {
+  const { t } = useTranslation()
+  const { isDark } = useTheme()
   const [form, setForm] = useState({
     name: '', purpose: '', dosage: '', instructions: '',
     scheduledTime: '', daysOfWeek: [], photoUri: null,
@@ -221,7 +194,7 @@ function AddMedModal({ visible, onClose, onSave }) {
       const uri = await pickMedicationImage()
       if (uri) setForm(f => ({ ...f, photoUri: uri }))
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     }
   }
 
@@ -230,13 +203,13 @@ function AddMedModal({ visible, onClose, onSave }) {
       const uri = await takeMedicationPhoto()
       if (uri) setForm(f => ({ ...f, photoUri: uri }))
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     }
   }
 
   async function handleSave() {
     if (!form.name.trim()) {
-      Alert.alert('Required', 'Please enter the medication name.')
+      Alert.alert(t('required') || 'Required', t('pleaseEnterName') || 'Please enter the medication name.')
       return
     }
     setSaving(true)
@@ -245,7 +218,7 @@ function AddMedModal({ visible, onClose, onSave }) {
       reset()
       onClose()
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     } finally {
       setSaving(false)
     }
@@ -253,121 +226,122 @@ function AddMedModal({ visible, onClose, onSave }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-  <KeyboardAvoidingView
-    className="flex-1 justify-end bg-black/50"
-    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-  >
-    <View className="bg-white rounded-t-3xl p-5 max-h-[90%]">
-      <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-4" />
+      <KeyboardAvoidingView
+        className="flex-1 justify-end bg-black/50"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View className="bg-surface rounded-t-3xl p-5 max-h-[90%]">
+          <View className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full self-center mb-4" />
 
-      <Text className="text-xl font-bold text-gray-900 mb-4">Add Medication</Text>
+          <Text className="text-xl font-bold text-text mb-4">{t('addMedication') || 'Add Medication'}</Text>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Photo picker */}
-        <Text className="text-md font-semibold text-gray-700 mb-2">Medication Photo</Text>
-        <View className="items-center mb-4">
-          {form.photoUri ? (
-            <Image source={{ uri: form.photoUri }} className="w-32 h-32 rounded-xl" />
-          ) : (
-            <View className="w-32 h-32 rounded-xl bg-gray-100 justify-center items-center border-2 border-dashed border-gray-300">
-              <Text className="text-4xl">💊</Text>
-              <Text className="text-xs text-gray-500 mt-2 text-center px-2">Add a photo so you can recognize it</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text className="text-md font-semibold text-text mb-2">{t('medicationPhoto') || 'Medication Photo'}</Text>
+            <View className="items-center mb-4">
+              {form.photoUri ? (
+                <Image source={{ uri: form.photoUri }} className="w-32 h-32 rounded-xl" />
+              ) : (
+                <View className="w-32 h-32 rounded-xl bg-gray-100 dark:bg-gray-800 justify-center items-center border-2 border-dashed border-border">
+                  <Text className="text-4xl">💊</Text>
+                  <Text className="text-xs text-text-secondary mt-2 text-center px-2">{t('addPhotoSoYouRecognize') || 'Add a photo so you can recognize it'}</Text>
+                </View>
+              )}
+              <View className="flex-row mt-3 gap-2">
+                <TouchableOpacity className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg" onPress={handleCamera}>
+                  <Text className="text-md text-text">📷 {t('camera') || 'Camera'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg" onPress={handlePickPhoto}>
+                  <Text className="text-md text-text">🖼 {t('gallery') || 'Gallery'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-          <View className="flex-row mt-3 gap-2">
-            <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-lg" onPress={handleCamera}>
-              <Text className="text-md text-gray-700">📷 Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-lg" onPress={handlePickPhoto}>
-              <Text className="text-md text-gray-700">🖼 Gallery</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Name */}
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Medication Name *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. Aspirin"
-          value={form.name}
-          onChangeText={v => setForm(f => ({ ...f, name: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('medicationName') || 'Medication Name'} *</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('egAspirin') || 'e.g. Aspirin'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.name}
+              onChangeText={v => setForm(f => ({ ...f, name: v }))}
+            />
 
-        <Text className="text- font-semibold text-gray-700 mb-2">Purpose</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. Blood thinner"
-          value={form.purpose}
-          onChangeText={v => setForm(f => ({ ...f, purpose: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('purpose') || 'Purpose'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('egBloodThinner') || 'e.g. Blood thinner'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.purpose}
+              onChangeText={v => setForm(f => ({ ...f, purpose: v }))}
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Dosage</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. 100mg"
-          value={form.dosage}
-          onChangeText={v => setForm(f => ({ ...f, dosage: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('dosage') || 'Dosage'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('eg100mg') || 'e.g. 100mg'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.dosage}
+              onChangeText={v => setForm(f => ({ ...f, dosage: v }))}
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Instructions</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 h-20"
-          placeholder="e.g. Take after meals"
-          multiline
-          value={form.instructions}
-          onChangeText={v => setForm(f => ({ ...f, instructions: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('instructions') || 'Instructions'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text h-20"
+              placeholder={t('egAfterMeals') || 'e.g. Take after meals'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              multiline
+              value={form.instructions}
+              onChangeText={v => setForm(f => ({ ...f, instructions: v }))}
+            />
 
-        {/* Time */}
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Scheduled Time (HH:MM)</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. 08:00"
-          value={form.scheduledTime}
-          onChangeText={v => setForm(f => ({ ...f, scheduledTime: v }))}
-          keyboardType="numbers-and-punctuation"
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('scheduledTime') || 'Scheduled Time (HH:MM)'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('eg0800') || 'e.g. 08:00'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.scheduledTime}
+              onChangeText={v => setForm(f => ({ ...f, scheduledTime: v }))}
+              keyboardType="numbers-and-punctuation"
+            />
 
-        {/* Days */}
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Days of Week</Text>
-        <View className="flex-row flex-wrap gap-2 mb-4">
-          {DAYS.map(day => (
+            <Text className="text-lg font-semibold text-text mb-2">{t('daysOfWeek') || 'Days of Week'}</Text>
+            <View className="flex-row flex-wrap gap-2 mb-4">
+              {DAYS.map(day => (
+                <TouchableOpacity
+                  key={day}
+                  className={`px-4 py-2 rounded-full border ${form.daysOfWeek.includes(day) ? 'bg-primary_blue border-primary' : 'bg-surface border-border'}`}
+                  onPress={() => toggleDay(day)}
+                >
+                  <Text className={`text-lg font-medium ${form.daysOfWeek.includes(day) ? 'text-white' : 'text-text'}`}>
+                    {DAY_LABELS[day]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity
-              key={day}
-              className={`px-4 py-2 rounded-full border ${form.daysOfWeek.includes(day) ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
-              onPress={() => toggleDay(day)}
+              className={`bg-primary_blue py-4 rounded-xl items-center mb-3 ${saving ? 'opacity-60' : ''}`}
+              onPress={handleSave}
+              disabled={saving}
             >
-              <Text className={`text-lg font-medium ${form.daysOfWeek.includes(day) ? 'text-white' : 'text-gray-700'}`}>
-                {DAY_LABELS[day]}
-              </Text>
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text className="text-white font-semibold text-base">{t('saveMedication') || 'Save Medication'}</Text>
+              }
             </TouchableOpacity>
-          ))}
+
+            <TouchableOpacity className="py-3 items-center" onPress={() => { reset(); onClose() }}>
+              <Text className="text-text-secondary font-medium">{t('cancel') || 'Cancel'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-
-        {/* Save */}
-        <TouchableOpacity
-          className={`bg-blue-600 py-4 rounded-xl items-center mb-3 ${saving ? 'opacity-60' : ''}`}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving
-            ? <ActivityIndicator color="#fff" />
-            : <Text className="text-white font-semibold text-base">Save Medication</Text>
-          }
-        </TouchableOpacity>
-
-        <TouchableOpacity className="py-3 items-center" onPress={() => { reset(); onClose() }}>
-          <Text className="text-gray-500 font-medium">Cancel</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  </KeyboardAvoidingView>
-</Modal>
+      </KeyboardAvoidingView>
+    </Modal>
   )
 }
 
-// ─── Confirm Modal ────────────────────────────────────────────────────────────
 function ConfirmModal({ visible, med, onClose, onConfirm }) {
+  const { t } = useTranslation()
+  const { isDark } = useTheme()
   const [photoUri, setPhotoUri] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -376,7 +350,7 @@ function ConfirmModal({ visible, med, onClose, onConfirm }) {
       const uri = await takeMedicationPhoto()
       if (uri) setPhotoUri(uri)
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     }
   }
 
@@ -385,7 +359,7 @@ function ConfirmModal({ visible, med, onClose, onConfirm }) {
       const uri = await pickMedicationImage()
       if (uri) setPhotoUri(uri)
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     }
   }
 
@@ -396,7 +370,7 @@ function ConfirmModal({ visible, med, onClose, onConfirm }) {
       setPhotoUri(null)
       onClose()
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     } finally {
       setLoading(false)
     }
@@ -406,76 +380,74 @@ function ConfirmModal({ visible, med, onClose, onConfirm }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-  <View className="flex-1 justify-center items-center bg-black/50 px-4">
-    <View className="bg-white rounded-2xl p-5 w-full max-h-[80%]">
-      <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-4" />
-      <Text className="text-xl font-bold text-gray-900 text-center mb-4">Confirm Taking</Text>
+      <View className="flex-1 justify-center items-center bg-black/50 px-4">
+        <View className="bg-surface rounded-2xl p-5 w-full max-h-[80%]">
+          <View className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full self-center mb-4" />
+          <Text className="text-xl font-bold text-text text-center mb-4">{t('confirmTaking') || 'Confirm Taking'}</Text>
 
-      {/* Medication info */}
-      <View className="items-center mb-4">
-        {med.photo_url ? (
-          <Image source={{ uri: med.photo_url }} className="w-24 h-24 rounded-xl mb-3" />
-        ) : (
-          <View className="w-24 h-24 rounded-xl bg-yellow-100 items-center justify-center mb-3">
-            <Text className="text-4xl">💊</Text>
+          <View className="items-center mb-4">
+            {med.photo_url ? (
+              <Image source={{ uri: med.photo_url }} className="w-24 h-24 rounded-xl mb-3" />
+            ) : (
+              <View className="w-24 h-24 rounded-xl bg-yellow-100 dark:bg-yellow-900/20 items-center justify-center mb-3">
+                <Text className="text-4xl">💊</Text>
+              </View>
+            )}
+            <Text className="text-lg font-bold text-text text-center">{med.name}</Text>
+            <Text className="text-md text-text-secondary text-center">{med.dosage}</Text>
           </View>
-        )}
-        <Text className="text-lg font-bold text-gray-900 text-center">{med.name}</Text>
-        <Text className="text-md text-gray-500 text-center">{med.dosage}</Text>
-      </View>
 
-      <Text className="text-lg text-gray-600 text-center mb-4">
-        Optionally take a photo of your medication as proof
-      </Text>
+          <Text className="text-lg text-text-secondary text-center mb-4">
+            {t('optionallyTakePhoto') || 'Optionally take a photo of your medication as proof'}
+          </Text>
 
-      {/* Proof photo */}
-      {photoUri ? (
-        <Image source={{ uri: photoUri }} className="w-full h-40 rounded-xl mb-4" />
-      ) : (
-        <View className="w-full h-40 rounded-xl bg-gray-100 items-center justify-center mb-4 border-2 border-dashed border-gray-300">
-          <Text className="text-3xl">📸</Text>
-          <Text className="text-lg text-gray-500 mt-2">No photo yet</Text>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} className="w-full h-40 rounded-xl mb-4" />
+          ) : (
+            <View className="w-full h-40 rounded-xl bg-gray-100 dark:bg-gray-800 items-center justify-center mb-4 border-2 border-dashed border-border">
+              <Text className="text-3xl">📸</Text>
+              <Text className="text-lg text-text-secondary mt-2">{t('noPhotoYet') || 'No photo yet'}</Text>
+            </View>
+          )}
+
+          <View className="flex-row justify-center gap-3 mb-4">
+            <TouchableOpacity className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg flex-1 items-center" onPress={handleCamera}>
+              <Text className="text-lg text-text">📷 {t('camera') || 'Camera'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg flex-1 items-center" onPress={handleGallery}>
+              <Text className="text-lg text-text">🖼 {t('gallery') || 'Gallery'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            className={`bg-primary_blue py-4 rounded-xl items-center mb-3 ${loading ? 'opacity-60' : ''}`}
+            onPress={handleConfirm}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text className="text-white font-semibold text-base">✓ {t('markAsTaken') || 'Mark as Taken'}</Text>
+            }
+          </TouchableOpacity>
+
+          <TouchableOpacity className="py-3 items-center" onPress={() => { setPhotoUri(null); onClose() }}>
+            <Text className="text-text-secondary font-medium">{t('cancel') || 'Cancel'}</Text>
+          </TouchableOpacity>
         </View>
-      )}
-
-      <View className="flex-row justify-center gap-3 mb-4">
-        <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-lg flex-1 items-center" onPress={handleCamera}>
-          <Text className="text-lg text-gray-700">📷 Camera</Text>
-        </TouchableOpacity>
-        <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-lg flex-1 items-center" onPress={handleGallery}>
-          <Text className="text-lg text-gray-700">🖼 Gallery</Text>
-        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        className={`bg-blue-600 py-4 rounded-xl items-center mb-3 ${loading ? 'opacity-60' : ''}`}
-        onPress={handleConfirm}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text className="text-white font-semibold text-base">✓ Mark as Taken</Text>
-        }
-      </TouchableOpacity>
-
-      <TouchableOpacity className="py-3 items-center" onPress={() => { setPhotoUri(null); onClose() }}>
-        <Text className="text-gray-500 font-medium">Cancel</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+    </Modal>
   )
 }
 
-// ─── Edit Medication Modal ────────────────────────────────────────────────────
 function EditMedModal({ visible, med, onClose, onSave }) {
+  const { t } = useTranslation()
+  const { isDark } = useTheme()
   const [form, setForm] = useState({
     name: '', purpose: '', dosage: '', instructions: '',
     scheduledTime: '', daysOfWeek: [], photoUri: null,
   })
   const [saving, setSaving] = useState(false)
 
-  // Pre-fill form when med changes
   useEffect(() => {
     if (!med) return
     const firstSchedule = med.medication_schedules?.[0]
@@ -508,7 +480,7 @@ function EditMedModal({ visible, med, onClose, onSave }) {
       const uri = await pickMedicationImage()
       if (uri) setForm(f => ({ ...f, photoUri: uri }))
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     }
   }
 
@@ -517,13 +489,13 @@ function EditMedModal({ visible, med, onClose, onSave }) {
       const uri = await takeMedicationPhoto()
       if (uri) setForm(f => ({ ...f, photoUri: uri }))
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     }
   }
 
   async function handleSave() {
     if (!form.name.trim()) {
-      Alert.alert('Required', 'Please enter the medication name.')
+      Alert.alert(t('required') || 'Required', t('pleaseEnterName') || 'Please enter the medication name.')
       return
     }
     setSaving(true)
@@ -531,7 +503,7 @@ function EditMedModal({ visible, med, onClose, onSave }) {
       await onSave(form)
       onClose()
     } catch (e) {
-      Alert.alert('Error', e.message)
+      Alert.alert(t('error') || 'Error', e.message)
     } finally {
       setSaving(false)
     }
@@ -541,118 +513,123 @@ function EditMedModal({ visible, med, onClose, onSave }) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-  <KeyboardAvoidingView
-    className="flex-1 justify-end bg-black/50"
-    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-  >
-    <View className="bg-white rounded-t-3xl p-5 max-h-[90%]">
-      <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-4" />
-      <Text className="text-xl font-bold text-gray-900 mb-4">Edit Medication</Text>
+      <KeyboardAvoidingView
+        className="flex-1 justify-end bg-black/50"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View className="bg-surface rounded-t-3xl p-5 max-h-[90%]">
+          <View className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full self-center mb-4" />
+          <Text className="text-xl font-bold text-text mb-4">{t('editMedication') || 'Edit Medication'}</Text>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Photo */}
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Medication Photo</Text>
-        <View className="items-center mb-4">
-          {form.photoUri ? (
-            <Image source={{ uri: form.photoUri }} className="w-32 h-32 rounded-xl" />
-          ) : (
-            <View className="w-32 h-32 rounded-xl bg-gray-100 justify-center items-center border-2 border-dashed border-gray-300">
-              <Text className="text-4xl">💊</Text>
-              <Text className="text-xs text-gray-500 mt-2">Tap to add a photo</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text className="text-lg font-semibold text-text mb-2">{t('medicationPhoto') || 'Medication Photo'}</Text>
+            <View className="items-center mb-4">
+              {form.photoUri ? (
+                <Image source={{ uri: form.photoUri }} className="w-32 h-32 rounded-xl" />
+              ) : (
+                <View className="w-32 h-32 rounded-xl bg-gray-100 dark:bg-gray-800 justify-center items-center border-2 border-dashed border-border">
+                  <Text className="text-4xl">💊</Text>
+                  <Text className="text-xs text-text-secondary mt-2">{t('tapToAddPhoto') || 'Tap to add a photo'}</Text>
+                </View>
+              )}
+              <View className="flex-row mt-3 gap-2">
+                <TouchableOpacity className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg" onPress={handleCamera}>
+                  <Text className="text-md text-text">📷 {t('camera') || 'Camera'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity className="bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg" onPress={handlePickPhoto}>
+                  <Text className="text-md text-text">🖼 {t('gallery') || 'Gallery'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
-          <View className="flex-row mt-3 gap-2">
-            <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-lg" onPress={handleCamera}>
-              <Text className="text-md text-gray-700">📷 Camera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity className="bg-gray-100 px-4 py-2 rounded-lg" onPress={handlePickPhoto}>
-              <Text className="text-md text-gray-700">🖼 Gallery</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Medication Name *</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. Aspirin"
-          value={form.name}
-          onChangeText={v => setForm(f => ({ ...f, name: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('medicationName') || 'Medication Name'} *</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('egAspirin') || 'e.g. Aspirin'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.name}
+              onChangeText={v => setForm(f => ({ ...f, name: v }))}
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Purpose</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. Blood thinner"
-          value={form.purpose}
-          onChangeText={v => setForm(f => ({ ...f, purpose: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('purpose') || 'Purpose'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('egBloodThinner') || 'e.g. Blood thinner'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.purpose}
+              onChangeText={v => setForm(f => ({ ...f, purpose: v }))}
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Dosage</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. 100mg"
-          value={form.dosage}
-          onChangeText={v => setForm(f => ({ ...f, dosage: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('dosage') || 'Dosage'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('eg100mg') || 'e.g. 100mg'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.dosage}
+              onChangeText={v => setForm(f => ({ ...f, dosage: v }))}
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Instructions</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 h-20"
-          placeholder="e.g. Take after meals"
-          multiline
-          value={form.instructions}
-          onChangeText={v => setForm(f => ({ ...f, instructions: v }))}
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('instructions') || 'Instructions'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text h-20"
+              placeholder={t('egAfterMeals') || 'e.g. Take after meals'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              multiline
+              value={form.instructions}
+              onChangeText={v => setForm(f => ({ ...f, instructions: v }))}
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Scheduled Time (HH:MM)</Text>
-        <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 mb-3 text-base bg-gray-50"
-          placeholder="e.g. 08:00"
-          value={form.scheduledTime}
-          onChangeText={v => setForm(f => ({ ...f, scheduledTime: v }))}
-          keyboardType="numbers-and-punctuation"
-        />
+            <Text className="text-lg font-semibold text-text mb-2">{t('scheduledTime') || 'Scheduled Time (HH:MM)'}</Text>
+            <TextInput
+              className="border border-border rounded-lg px-4 py-3 mb-3 text-base bg-gray-50 dark:bg-gray-800 text-text"
+              placeholder={t('eg0800') || 'e.g. 08:00'}
+              placeholderTextColor={isDark ? '#94a3b8' : '#666666'}
+              value={form.scheduledTime}
+              onChangeText={v => setForm(f => ({ ...f, scheduledTime: v }))}
+              keyboardType="numbers-and-punctuation"
+            />
 
-        <Text className="text-lg font-semibold text-gray-700 mb-2">Days of Week</Text>
-        <View className="flex-row flex-wrap gap-2 mb-4">
-          {DAYS.map(day => (
+            <Text className="text-lg font-semibold text-text mb-2">{t('daysOfWeek') || 'Days of Week'}</Text>
+            <View className="flex-row flex-wrap gap-2 mb-4">
+              {DAYS.map(day => (
+                <TouchableOpacity
+                  key={day}
+                  className={`px-4 py-2 rounded-full border ${form.daysOfWeek.includes(day) ? 'bg-primary_blue border-primary' : 'bg-surface border-border'}`}
+                  onPress={() => toggleDay(day)}
+                >
+                  <Text className={`text-lg font-medium ${form.daysOfWeek.includes(day) ? 'text-white' : 'text-text'}`}>
+                    {DAY_LABELS[day]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity
-              key={day}
-              className={`px-4 py-2 rounded-full border ${form.daysOfWeek.includes(day) ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
-              onPress={() => toggleDay(day)}
+              className={`bg-primary_blue py-4 rounded-xl items-center mb-3 ${saving ? 'opacity-60' : ''}`}
+              onPress={handleSave}
+              disabled={saving}
             >
-              <Text className={`text-lg font-medium ${form.daysOfWeek.includes(day) ? 'text-white' : 'text-gray-700'}`}>
-                {DAY_LABELS[day]}
-              </Text>
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text className="text-white font-semibold text-base">{t('saveChanges') || 'Save Changes'}</Text>
+              }
             </TouchableOpacity>
-          ))}
+
+            <TouchableOpacity className="py-3 items-center" onPress={onClose}>
+              <Text className="text-text-secondary font-medium">{t('cancel') || 'Cancel'}</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
-
-        <TouchableOpacity
-          className={`bg-blue-600 py-4 rounded-xl items-center mb-3 ${saving ? 'opacity-60' : ''}`}
-          onPress={handleSave}
-          disabled={saving}
-        >
-          {saving
-            ? <ActivityIndicator color="#fff" />
-            : <Text className="text-white font-semibold text-base">Save Changes</Text>
-          }
-        </TouchableOpacity>
-
-        <TouchableOpacity className="py-3 items-center" onPress={onClose}>
-          <Text className="text-gray-500 font-medium">Cancel</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  </KeyboardAvoidingView>
-</Modal>
+      </KeyboardAvoidingView>
+    </Modal>
   )
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function MedicationsScreen() {
+  const { t } = useTranslation()
+  const { isDark } = useTheme()
   const [userId, setUserId] = useState(null)
-  const [tab, setTab] = useState('today') // 'today' | 'all'
+  const [tab, setTab] = useState('today')
   const [todayMeds, setTodayMeds] = useState([])
   const [allMeds, setAllMeds] = useState([])
   const [loading, setLoading] = useState(true)
@@ -660,12 +637,10 @@ export default function MedicationsScreen() {
   const [confirmTarget, setConfirmTarget] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
 
-  // Load user once
   useEffect(() => {
     getCurrentUser().then(u => u && setUserId(u.user_id)).catch(console.error)
   }, [])
 
-  // Reload on focus
   useFocusEffect(
     useCallback(() => {
       if (userId) loadData()
@@ -682,7 +657,7 @@ export default function MedicationsScreen() {
       setTodayMeds(today)
       setAllMeds(all)
     } catch (e) {
-      Alert.alert('Error', 'Could not load medications.')
+      Alert.alert(t('error') || 'Error', t('couldNotLoadMeds') || 'Could not load medications.')
     } finally {
       setLoading(false)
     }
@@ -695,12 +670,12 @@ export default function MedicationsScreen() {
 
   async function handleDelete(med) {
     Alert.alert(
-      'Remove Medication',
-      `Remove "${med.name}" from your list?`,
+      t('removeMedication') || 'Remove Medication',
+      `${t('removeConfirm') || 'Remove'} "${med.name}" ${t('fromYourList') || 'from your list'}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel') || 'Cancel', style: 'cancel' },
         {
-          text: 'Remove', style: 'destructive',
+          text: t('remove') || 'Remove', style: 'destructive',
           onPress: async () => {
             await removeMedication(med.medication_id)
             await loadData()
@@ -720,69 +695,64 @@ export default function MedicationsScreen() {
     await loadData()
   }
 
-  // Stats for today
   const takenCount = todayMeds.filter(m => m.status === 'taken').length
   const totalToday = todayMeds.length
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+    <SafeAreaView className="flex-1 bg-background">
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+      <View className="flex-row items-center justify-between px-4 py-3 bg-surface border-b border-border">
         <View>
-          <Text className="text-xl font-bold text-gray-900">Medications</Text>
-          <Text className="text-md text-gray-500 mt-1">
+          <Text className="text-xl font-bold text-text">{t('medications') || 'Medications'}</Text>
+            <Text className={`text-md mt-1 ${isDark ? 'text-white/80' : 'text-text-secondary'}`}>
             {totalToday > 0
-              ? `${takenCount} of ${totalToday} taken today`
-              : 'No medications scheduled today'}
+              ? `${takenCount} ${t('of') || 'of'} ${totalToday} ${t('takenToday') || 'taken today'}`
+              : t('noMedsScheduled') || 'No medications scheduled today'}
           </Text>
         </View>
         <TouchableOpacity 
-          className="bg-blue-600 px-4 py-2 rounded" 
+          className="bg-primary_blue px-4 py-2 rounded" 
           onPress={() => setShowAdd(true)}
         >
-          <Text className="text-white font-semibold text-lg">+ Add</Text>
+          <Text className="text-white font-semibold text-lg">+ {t('add') || 'Add'}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Progress bar */}
       {totalToday > 0 && (
-        <View className="px-4 py-3 bg-white">
-          <View className="h-2 bg-gray-200 rounded-full overflow-hidden">
+        <View className="px-4 py-3 bg-surface">
+          <View className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <View 
-              className="h-full bg-blue-600 rounded-full" 
+              className="h-full bg-primary rounded-full" 
               style={{ width: `${(takenCount / totalToday) * 100}%` }} 
             />
           </View>
         </View>
       )}
 
-      {/* Tabs */}
-      <View className="flex-row bg-white border-b border-gray-200">
+            <View className="flex-row bg-surface border-b border-border">
         <TouchableOpacity
-          className={`flex-1 py-3 items-center border-b-2 ${tab === 'today' ? 'border-blue-600' : 'border-transparent'}`}
+          className={`flex-1 py-3 items-center border-b-2 ${tab === 'today' ? 'border-primary' : 'border-transparent'}`}
           onPress={() => setTab('today')}
         >
-          <Text className={`text-md font-medium ${tab === 'today' ? 'text-blue-600' : 'text-gray-500'}`}>
-            Today {totalToday > 0 ? `(${totalToday})` : ''}
+          <Text className={`text-md font-medium ${tab === 'today' ? (isDark ? 'text-white' : 'text-primary') : isDark ? 'text-white/60' : 'text-text-secondary'}`}>
+            {t('today') || 'Today'} {totalToday > 0 ? `(${totalToday})` : ''}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          className={`flex-1 py-3 items-center border-b-2 ${tab === 'all' ? 'border-blue-600' : 'border-transparent'}`}
+          className={`flex-1 py-3 items-center border-b-2 ${tab === 'all' ? 'border-primary' : 'border-transparent'}`}
           onPress={() => setTab('all')}
         >
-          <Text className={`text-md font-medium ${tab === 'all' ? 'text-blue-600' : 'text-gray-500'}`}>
-            All Medications {allMeds.length > 0 ? `(${allMeds.length})` : ''}
+          <Text className={`text-md font-medium ${tab === 'all' ? (isDark ? 'text-white' : 'text-primary') : isDark ? 'text-white/60' : 'text-text-secondary'}`}>
+            {t('allMedications') || 'All Medications'} {allMeds.length > 0 ? `(${allMeds.length})` : ''}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
       {loading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={C.primary} />
-          <Text className="mt-3 text-gray-500 text-base">Loading medications…</Text>
+          <ActivityIndicator size="large" color="#5B8CFF" />
+          <Text className="mt-3 text-text-secondary text-base">{t('loadingMeds') || 'Loading medications…'}</Text>
         </View>
       ) : (
         <ScrollView
@@ -794,8 +764,8 @@ export default function MedicationsScreen() {
             todayMeds.length === 0 ? (
               <View className="items-center justify-center py-12">
                 <Text className="text-5xl mb-4">🌿</Text>
-                <Text className="text-lg font-semibold text-gray-900 mb-2">No medications today</Text>
-                <Text className="text-md text-gray-500 text-center">You have no medications scheduled for today.</Text>
+                <Text className="text-lg font-semibold text-text mb-2">{t('noMedsToday') || 'No medications today'}</Text>
+                <Text className="text-md text-text-secondary text-center">{t('noMedsTodayDesc') || 'You have no medications scheduled for today.'}</Text>
               </View>
             ) : (
               todayMeds.map(med => (
@@ -810,13 +780,13 @@ export default function MedicationsScreen() {
             allMeds.length === 0 ? (
               <View className="items-center justify-center py-12">
                 <Text className="text-5xl mb-4">💊</Text>
-                <Text className="text-lg font-semibold text-gray-900 mb-2">No medications added yet</Text>
-                <Text className="text-md text-gray-500 text-center mb-6">Tap "+ Add" to add your first medication.</Text>
+                <Text className="text-lg font-semibold text-text mb-2">{t('noMedsAddedYet') || 'No medications added yet'}</Text>
+                <Text className="text-md text-text-secondary text-center mb-6">{t('tapToAddFirst') || 'Tap "+ Add" to add your first medication.'}</Text>
                 <TouchableOpacity 
-                  className="bg-blue-600 px-6 py-3 rounded-full" 
+                  className="bg-primary_blue px-6 py-3 rounded-full" 
                   onPress={() => setShowAdd(true)}
                 >
-                  <Text className="text-white font-semibold">+ Add Medication</Text>
+                  <Text className="text-white font-semibold">+ {t('addMedication') || 'Add Medication'}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -833,7 +803,6 @@ export default function MedicationsScreen() {
         </ScrollView>
       )}
 
-      {/* Modals */}
       <AddMedModal visible={showAdd} onClose={() => setShowAdd(false)} onSave={handleAddMed} />
       <EditMedModal
         visible={!!editTarget}

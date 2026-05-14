@@ -1,338 +1,393 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react'
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   FlatList,
   ScrollView,
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+} from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect } from 'expo-router'
+import { useTranslation } from 'react-i18next'
+import { useTheme } from '../../ThemeContext'
+import CalendarEventCard from '../../Componet/Calendareventcard'
+import CalendarEventModal from '../../Componet/Calendareventmodal'
+import { getEventsForMonth } from '../../services/calendar.service'
+import { getCurrentUser } from '../../services/auth.service'
+import { getLinkedElderly } from '../../services/Caregiver.service'
+import { supabase } from '../../lib/supabase'
 
-import CalendarEventCard  from '../../Componet/Calendareventcard';
-import CalendarEventModal from '../../Componet/Calendareventmodal';
-import { getEventsForMonth } from '../../services/calendar.service';
-import { supabase }           from '../../lib/supabase';
+const TYPE_COLOR = { medical: '#E05C5C', family: '#5B8CFF', other: '#5CB87A' }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const MONTH_NAMES = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
-];
-const DAY_LABELS  = ['S','M','T','W','T','F','S'];
-const TYPE_COLOR  = { medical: '#E05C5C', family: '#5B8CFF', other: '#5CB87A' };
+function getDaysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate()
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function getDaysInMonth(year, month)  { return new Date(year, month + 1, 0).getDate(); }
-function getFirstDayOfMonth(year, month) { return new Date(year, month, 1).getDay(); }
+function getFirstDayOfMonth(year, month) {
+  return new Date(year, month, 1).getDay()
+}
+
 function isSameDay(a, b) {
-  return a.getFullYear() === b.getFullYear()
-      && a.getMonth()    === b.getMonth()
-      && a.getDate()     === b.getDate();
-}
-function getInitials(first, last) {
-  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
-}
-function calcAge(dob) {
-  if (!dob) return null;
-  const diff = Date.now() - new Date(dob).getTime();
-  return Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
 }
 
-// ─── ElderlySelector ─────────────────────────────────────────────────────────
+function getInitials(first, last) {
+  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase()
+}
+
+function calcAge(dob) {
+  if (!dob) return null
+  const diff = Date.now() - new Date(dob).getTime()
+  return Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))
+}
+
+function getCalendarLocale(language) {
+  const candidates = language?.startsWith('ar')
+    ? ['ar-IQ', 'ar']
+    : language?.startsWith('ku')
+      ? ['ckb-IQ', 'ku', 'ar-IQ']
+      : ['en-US', 'en']
+
+  for (const locale of candidates) {
+    try {
+      if (Intl.DateTimeFormat.supportedLocalesOf([locale]).length) return locale
+    } catch {}
+  }
+
+  return 'en-US'
+}
+
+function getWeekdayLabels(locale) {
+  const sunday = new Date(2024, 0, 7)
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(sunday)
+    date.setDate(sunday.getDate() + index)
+    return date.toLocaleDateString(locale, { weekday: 'narrow' })
+  })
+}
+
+function getEventTypeLabel(type, t) {
+  if (type === 'medical') return t('calendarTypeMedical') || 'Medical'
+  if (type === 'family') return t('calendarTypeFamily') || 'Family'
+  return t('calendarTypeOther') || 'Other'
+}
+
 function ElderlySelector({ list, selected, onSelect }) {
-  if (!list.length) return null;
+  const { t } = useTranslation()
+
+  if (!list.length) return null
+
   return (
-    <View style={sel.wrapper}>
-      <Text style={sel.label}>Select Patient</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={sel.row}
-      >
-        {list.map((e) => {
-          const active = selected?.user_id === e.user_id;
-          const age    = calcAge(e.date_of_birth);
-          return (
-            <TouchableOpacity
-              key={e.user_id}
-              style={[sel.chip, active && sel.chipActive]}
-              onPress={() => onSelect(e)}
-              activeOpacity={0.8}
-            >
-              <View style={[sel.avatar, active && sel.avatarActive]}>
-                <Text style={[sel.initials, active && sel.initialsActive]}>
-                  {getInitials(e.first_name, e.last_name)}
+    <View className="mb-4">
+      <Text className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-3">
+        {t('selectPatient') || 'Select patient'}
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row gap-3 pb-1">
+          {list.map((elderly) => {
+            const active = selected?.user_id === elderly.user_id
+            const age = calcAge(elderly.date_of_birth)
+
+            return (
+              <TouchableOpacity
+                key={elderly.user_id}
+                className={`items-center py-2.5 px-3.5 rounded-2xl border min-w-[72px] ${
+                  active
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                    : 'border-border bg-surface'
+                }`}
+                onPress={() => onSelect(elderly)}
+                activeOpacity={0.8}
+              >
+                <View
+                  className={`w-11 h-11 rounded-full items-center justify-center mb-1.5 ${
+                    active
+                      ? 'bg-blue-100 dark:bg-blue-900/50'
+                      : 'bg-gray-100 dark:bg-gray-800'
+                  }`}
+                >
+                  <Text
+                    className={`text-base font-bold ${
+                      active ? 'text-blue-600 dark:text-blue-300' : 'text-text-secondary'
+                    }`}
+                  >
+                    {getInitials(elderly.first_name, elderly.last_name)}
+                  </Text>
+                </View>
+                <Text
+                  className={`text-sm font-bold ${
+                    active ? 'text-blue-600 dark:text-blue-300' : 'text-text'
+                  }`}
+                >
+                  {elderly.first_name}
                 </Text>
-              </View>
-              <Text style={[sel.name, active && sel.nameActive]}>{e.first_name}</Text>
-              {age ? <Text style={sel.age}>{age} yrs</Text> : null}
-            </TouchableOpacity>
-          );
-        })}
+                {age ? (
+                  <Text className="text-xs text-text-secondary mt-0.5">
+                    {age} {t('yearsAbbrev') || 'yrs'}
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
+            )
+          })}
+        </View>
       </ScrollView>
     </View>
-  );
+  )
 }
 
-const sel = StyleSheet.create({
-  wrapper: { marginBottom: 4 },
-  label: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#9999AA',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginLeft: 20,
-    marginBottom: 10,
-  },
-  row: { gap: 10, paddingHorizontal: 20, paddingBottom: 4 },
-  chip: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFF',
-    minWidth: 72,
-  },
-  chipActive: { borderColor: '#3B5BDB', backgroundColor: '#EDF2FF' },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#E2E8F0',
-    marginBottom: 6,
-  },
-  avatarActive: { backgroundColor: '#C5D3FF' },
-  initials:      { fontSize: 15, fontWeight: '800', color: '#555570' },
-  initialsActive:{ color: '#3B5BDB' },
-  name:          { fontSize: 12, fontWeight: '700', color: '#1A1A2E' },
-  nameActive:    { color: '#3B5BDB' },
-  age:           { fontSize: 10, color: '#9999AA', marginTop: 2 },
-});
-
-// ─── Empty state when no patients are linked ─────────────────────────────────
 function NoPatients() {
+  const { t } = useTranslation()
+  const { isDark } = useTheme()
+
   return (
-    <View style={styles.noPatients}>
-      <Ionicons name="people-outline" size={48} color="#D0D5E8" />
-      <Text style={styles.noPatientsTitle}>No linked patients</Text>
-      <Text style={styles.noPatientsText}>
-        Your patients will appear here once they accept your request.
+    <View className="flex-1 items-center justify-center px-8 py-16">
+      <Ionicons
+        name="people-outline"
+        size={48}
+        color={isDark ? '#475569' : '#D0D5E8'}
+      />
+      <Text className="text-lg font-semibold text-text mt-4 mb-1">
+        {t('noLinkedPatients') || 'No linked patients'}
+      </Text>
+      <Text className="text-text-secondary text-center">
+        {t('patientsAppearAfterAccept') || 'Your patients will appear here once they accept your request.'}
       </Text>
     </View>
-  );
+  )
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function CaregiverCalendarScreen() {
-  const today = new Date();
+  const today = new Date()
+  const { t, i18n } = useTranslation()
+  const { isDark } = useTheme()
+  const locale = getCalendarLocale(i18n.language)
+  const dayLabels = getWeekdayLabels(locale)
 
-  // ── Auth + linked patients ─────────────────────────────────
-  const [currentUser,    setCurrentUser]    = useState(null);
-  const [linkedPatients, setLinkedPatients] = useState([]);
-  const [selectedPatient,setSelectedPatient]= useState(null);
-  const [loadingPatients,setLoadingPatients]= useState(true);
+  const [currentUser, setCurrentUser] = useState(null)
+  const [linkedPatients, setLinkedPatients] = useState([])
+  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [loadingPatients, setLoadingPatients] = useState(true)
+  const [viewYear, setViewYear] = useState(today.getFullYear())
+  const [viewMonth, setViewMonth] = useState(today.getMonth())
+  const [selectedDate, setSelectedDate] = useState(today)
+  const [events, setEvents] = useState([])
+  const [loadingEvents, setLoadingEvents] = useState(false)
+  const [modalVisible, setModalVisible] = useState(false)
+  const [activeEvent, setActiveEvent] = useState(null)
 
-  // ── Calendar state ─────────────────────────────────────────
-  const [viewYear,     setViewYear]     = useState(today.getFullYear());
-  const [viewMonth,    setViewMonth]    = useState(today.getMonth());
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [events,       setEvents]       = useState([]);
-  const [loadingEvents,setLoadingEvents]= useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [activeEvent,  setActiveEvent]  = useState(null);
-
-  // ── 1. Get current caregiver ───────────────────────────────
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setCurrentUser(data?.user ?? null));
-  }, []);
-
-  // ── 2. Load linked elderly patients ───────────────────────
-  useEffect(() => {
-    if (!currentUser) return;
-    (async () => {
-      setLoadingPatients(true);
+    ;(async () => {
       try {
-        // Join caregiver_elderly_links → users to get patient profile
-        const { data, error } = await supabase
-          .from('caregiver_elderly_links')
-          .select(`
-            elderly_user_id,
-            can_view_medications,
-            can_view_biometrics,
-            elderly:users!caregiver_elderly_links_elderly_user_id_fkey (
-              user_id,
-              first_name,
-              last_name,
-              date_of_birth,
-              profile_photo_url
-            )
-          `)
-          .eq('caregiver_user_id', currentUser.id)
-          .eq('status', 'active');
+        const user = await getCurrentUser()
+        setCurrentUser(user)
 
-        if (error) throw error;
+        const linked = await getLinkedElderly(user.user_id)
+        let patients = linked
 
-        const patients = (data ?? []).map((row) => row.elderly).filter(Boolean);
-        setLinkedPatients(patients);
-        // auto-select first patient
-        if (patients.length > 0) setSelectedPatient(patients[0]);
-      } catch (e) {
-        console.error('Failed to load linked patients:', e.message);
+        if (linked.length && !linked[0].date_of_birth) {
+          const ids = linked.map((patient) => patient.user_id)
+          const { data } = await supabase
+            .from('users')
+            .select('user_id, first_name, last_name, date_of_birth, profile_photo_url')
+            .in('user_id', ids)
+
+          if (data) patients = data
+        }
+
+        setLinkedPatients(patients)
+        if (patients.length) setSelectedPatient(patients[0])
       } finally {
-        setLoadingPatients(false);
+        setLoadingPatients(false)
       }
-    })();
-  }, [currentUser]);
+    })()
+  }, [])
 
-  // ── 3. Load events when patient / month changes ────────────
   const loadEvents = useCallback(async () => {
-    if (!selectedPatient) { setEvents([]); return; }
-    setLoadingEvents(true);
+    if (!selectedPatient) {
+      setEvents([])
+      return
+    }
+
+    setLoadingEvents(true)
     try {
-      const data = await getEventsForMonth(selectedPatient.user_id, viewYear, viewMonth);
-      setEvents(data ?? []);
-    } catch (e) {
-      console.error('Calendar load error:', e.message);
+      const data = await getEventsForMonth(selectedPatient.user_id, viewYear, viewMonth)
+      setEvents(data ?? [])
+    } catch (error) {
+      console.error('Calendar load error:', error.message)
     } finally {
-      setLoadingEvents(false);
+      setLoadingEvents(false)
     }
-  }, [selectedPatient, viewYear, viewMonth]);
+  }, [selectedPatient, viewYear, viewMonth])
 
-  useFocusEffect(useCallback(() => { loadEvents(); }, [loadEvents]));
+  useFocusEffect(useCallback(() => {
+    loadEvents()
+  }, [loadEvents]))
 
-  // Reset to today's date when switching patient
   function handleSelectPatient(patient) {
-    setSelectedPatient(patient);
-    setSelectedDate(today);
-    setViewYear(today.getFullYear());
-    setViewMonth(today.getMonth());
+    setSelectedPatient(patient)
+    setSelectedDate(today)
+    setViewYear(today.getFullYear())
+    setViewMonth(today.getMonth())
   }
 
-  // ── Derived ────────────────────────────────────────────────
-  const dayEvents = events.filter((ev) =>
-    isSameDay(new Date(ev.start_datetime), selectedDate)
-  );
+  const dayEvents = events.filter((event) =>
+    isSameDay(new Date(event.start_datetime), selectedDate)
+  )
 
-  const dotMap = {};
-  events.forEach((ev) => {
-    const d   = new Date(ev.start_datetime);
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    if (!dotMap[key]) dotMap[key] = [];
-    const color = TYPE_COLOR[ev.event_type] ?? TYPE_COLOR.other;
-    if (!dotMap[key].includes(color)) dotMap[key].push(color);
-  });
+  const dotMap = {}
+  events.forEach((event) => {
+    const date = new Date(event.start_datetime)
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+    if (!dotMap[key]) dotMap[key] = []
+    const color = TYPE_COLOR[event.event_type] ?? TYPE_COLOR.other
+    if (!dotMap[key].includes(color)) dotMap[key].push(color)
+  })
+
   function dotsFor(year, month, day) {
-    return dotMap[`${year}-${month}-${day}`] ?? [];
+    return dotMap[`${year}-${month}-${day}`] ?? []
   }
 
-  // ── Month navigation ───────────────────────────────────────
   function prevMonth() {
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
-  }
-  function nextMonth() {
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
-  }
-
-  // ── Modal ──────────────────────────────────────────────────
-  function openCreate() { setActiveEvent(null); setModalVisible(true); }
-  function openEvent(ev) { setActiveEvent(ev);   setModalVisible(true); }
-
-  // ── Calendar grid ──────────────────────────────────────────
-  function renderGrid() {
-    const daysInMonth  = getDaysInMonth(viewYear, viewMonth);
-    const firstWeekday = getFirstDayOfMonth(viewYear, viewMonth);
-    const cells        = [];
-
-    for (let i = 0; i < firstWeekday; i++) {
-      cells.push(<View key={`b${i}`} style={styles.cell} />);
+    if (viewMonth === 0) {
+      setViewYear((year) => year - 1)
+      setViewMonth(11)
+      return
     }
+    setViewMonth((month) => month - 1)
+  }
+
+  function nextMonth() {
+    if (viewMonth === 11) {
+      setViewYear((year) => year + 1)
+      setViewMonth(0)
+      return
+    }
+    setViewMonth((month) => month + 1)
+  }
+
+  function openCreate() {
+    setActiveEvent(null)
+    setModalVisible(true)
+  }
+
+  function openEvent(event) {
+    setActiveEvent(event)
+    setModalVisible(true)
+  }
+
+  function renderGrid() {
+    const daysInMonth = getDaysInMonth(viewYear, viewMonth)
+    const firstWeekday = getFirstDayOfMonth(viewYear, viewMonth)
+    const cells = []
+
+    for (let index = 0; index < firstWeekday; index++) {
+      cells.push(<View key={`blank-${index}`} className="w-[14.28%] aspect-square" />)
+    }
+
     for (let day = 1; day <= daysInMonth; day++) {
-      const cellDate   = new Date(viewYear, viewMonth, day);
-      const isToday    = isSameDay(cellDate, today);
-      const isSelected = isSameDay(cellDate, selectedDate);
-      const dots       = dotsFor(viewYear, viewMonth, day);
+      const cellDate = new Date(viewYear, viewMonth, day)
+      const currentDay = isSameDay(cellDate, today)
+      const selected = isSameDay(cellDate, selectedDate)
+      const dots = dotsFor(viewYear, viewMonth, day)
 
       cells.push(
         <TouchableOpacity
           key={day}
-          style={[
-            styles.cell,
-            isSelected && styles.cellSelected,
-            isToday && !isSelected && styles.cellToday,
-          ]}
+          className={`w-[14.28%] aspect-square items-center justify-center rounded-lg ${
+            selected
+              ? 'bg-blue-500'
+              : currentDay
+                ? 'bg-blue-100 dark:bg-blue-950/40'
+                : 'bg-transparent'
+          }`}
           onPress={() => setSelectedDate(cellDate)}
         >
-          <Text style={[
-            styles.cellText,
-            isSelected && styles.cellTextSelected,
-            isToday && !isSelected && styles.cellTextToday,
-          ]}>
+          <Text
+            className={`text-base font-medium ${
+              selected
+                ? 'text-white'
+                : currentDay
+                  ? 'text-blue-600 dark:text-blue-300'
+                  : 'text-text'
+            }`}
+          >
             {day}
           </Text>
-          {dots.length > 0 && (
-            <View style={styles.dotsRow}>
-              {dots.slice(0, 3).map((c, i) => (
-                <View key={i} style={[styles.eventDot, { backgroundColor: c }]} />
+          {dots.length > 0 ? (
+            <View className="flex-row mt-1 gap-0.5">
+              {dots.slice(0, 3).map((color, index) => (
+                <View key={index} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
               ))}
             </View>
-          )}
+          ) : null}
         </TouchableOpacity>
-      );
+      )
     }
 
-    const rows = [];
-    for (let i = 0; i < cells.length; i += 7) {
+    const rows = []
+    for (let index = 0; index < cells.length; index += 7) {
       rows.push(
-        <View key={i} style={styles.gridRow}>
-          {cells.slice(i, i + 7)}
+        <View key={index} className="flex-row w-full">
+          {cells.slice(index, index + 7)}
         </View>
-      );
+      )
     }
-    return rows;
+
+    return rows
   }
 
-  const selectedLabel = selectedDate.toLocaleDateString([], {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString(locale, {
+    month: 'long',
+    year: 'numeric',
+  })
 
-  // ─────────────────────────────────────────────────────────────
+  const selectedLabel = selectedDate.toLocaleDateString(locale, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F6FA" />
+    <SafeAreaView className="flex-1 bg-background">
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={isDark ? '#1A1A2E' : '#F5F5F5'}
+      />
 
-      {/* ── Top bar ── */}
-      <View style={styles.topBar}>
+      <View className="flex-row items-center justify-between px-4 py-3 bg-surface border-b border-border">
         <View>
-          <Text style={styles.screenTitle}>Calendar</Text>
-          {selectedPatient && (
-            <Text style={styles.screenSub}>
+          <Text className="text-xl font-bold text-text">
+            {t('calendarTab') || t('calendar') || 'Calendar'}
+          </Text>
+          {selectedPatient ? (
+            <Text className="text-sm text-text-secondary mt-1">
               {selectedPatient.first_name} {selectedPatient.last_name}
             </Text>
-          )}
+          ) : null}
         </View>
-        {selectedPatient && (
-          <TouchableOpacity style={styles.addBtn} onPress={openCreate}>
+        {selectedPatient ? (
+          <TouchableOpacity
+            className="bg-blue-500 w-9 h-9 rounded-full items-center justify-center"
+            onPress={openCreate}
+          >
             <Ionicons name="add" size={22} color="#FFF" />
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
-      {/* ── Loading patients ── */}
       {loadingPatients ? (
-        <View style={styles.centerLoad}>
-          <ActivityIndicator size="large" color="#3B5BDB" />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#5B8CFF" />
+          <Text className="text-text-secondary mt-4">
+            {t('loadingPatients') || 'Loading patients...'}
+          </Text>
         </View>
       ) : linkedPatients.length === 0 ? (
         <NoPatients />
@@ -340,58 +395,54 @@ export default function CaregiverCalendarScreen() {
         <FlatList
           data={dayEvents}
           keyExtractor={(item) => item.event_id}
-          contentContainerStyle={styles.listContent}
+          contentContainerClassName="p-4 pb-20"
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>
-              {/* ── Patient selector ── */}
-              <View style={styles.selectorWrap}>
-                <ElderlySelector
-                  list={linkedPatients}
-                  selected={selectedPatient}
-                  onSelect={handleSelectPatient}
-                />
-              </View>
+              <ElderlySelector
+                list={linkedPatients}
+                selected={selectedPatient}
+                onSelect={handleSelectPatient}
+              />
 
-              {/* ── Calendar card ── */}
-              <View style={styles.calendarCard}>
-                <View style={styles.monthNav}>
-                  <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-                    <Ionicons name="chevron-back" size={20} color="#444" />
+              <View className="bg-surface rounded-2xl p-4 mb-4 border border-border shadow-sm">
+                <View className="flex-row items-center justify-between mb-4">
+                  <TouchableOpacity onPress={prevMonth} className="p-2">
+                    <Ionicons name="chevron-back" size={20} color={isDark ? '#CBD5E1' : '#444444'} />
                   </TouchableOpacity>
-                  <Text style={styles.monthLabel}>
-                    {MONTH_NAMES[viewMonth]} {viewYear}
-                  </Text>
-                  <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-                    <Ionicons name="chevron-forward" size={20} color="#444" />
+                  <Text className="text-lg font-bold text-text">{monthLabel}</Text>
+                  <TouchableOpacity onPress={nextMonth} className="p-2">
+                    <Ionicons name="chevron-forward" size={20} color={isDark ? '#CBD5E1' : '#444444'} />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.dayHeaderRow}>
-                  {DAY_LABELS.map((d, i) => (
-                    <Text key={i} style={styles.dayHeader}>{d}</Text>
+                <View className="flex-row justify-between mb-2">
+                  {dayLabels.map((label, index) => (
+                    <Text key={index} className="flex-1 text-center text-md font-semibold text-text-secondary">
+                      {label}
+                    </Text>
                   ))}
                 </View>
 
-                <View style={styles.grid}>{renderGrid()}</View>
+                <View className="flex-row flex-wrap">
+                  {renderGrid()}
+                </View>
               </View>
 
-              {/* ── Legend ── */}
-              <View style={styles.legendRow}>
+              <View className="flex-row flex-wrap justify-center gap-x-4 gap-y-2 mb-4">
                 {Object.entries(TYPE_COLOR).map(([type, color]) => (
-                  <View key={type} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: color }]} />
-                    <Text style={styles.legendText}>
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                  <View key={type} className="flex-row items-center">
+                    <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: color }} />
+                    <Text className="text-md text-text-secondary">
+                      {getEventTypeLabel(type, t)}
                     </Text>
                   </View>
                 ))}
               </View>
 
-              {/* ── Day title ── */}
-              <View style={styles.dayTitleRow}>
-                <Text style={styles.dayTitle}>{selectedLabel}</Text>
-                {loadingEvents && <ActivityIndicator size="small" color="#3B5BDB" />}
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-lg font-bold text-text">{selectedLabel}</Text>
+                {loadingEvents ? <ActivityIndicator size="small" color="#5B8CFF" /> : null}
               </View>
             </>
           }
@@ -399,154 +450,48 @@ export default function CaregiverCalendarScreen() {
             <CalendarEventCard event={item} onPress={openEvent} />
           )}
           ListEmptyComponent={
-            !loadingEvents && (
-              <View style={styles.emptyState}>
-                <Ionicons name="calendar-outline" size={44} color="#D0D5E8" />
-                <Text style={styles.emptyTitle}>No events this day</Text>
-                <Text style={styles.emptySubtitle}>
-                  Tap + to schedule something for{' '}
-                  {selectedPatient?.first_name}
+            !loadingEvents ? (
+              <View className="items-center justify-center py-12">
+                <Ionicons
+                  name="calendar-outline"
+                  size={44}
+                  color={isDark ? '#475569' : '#D0D5E8'}
+                />
+                <Text className="text-lg font-semibold text-text mt-4 mb-1">
+                  {t('noEventsForThisDay') || 'No events for this day'}
+                </Text>
+                <Text className="text-md text-text-secondary text-center">
+                  {t('tapPlusToAddEventForPatient', {
+                    name: selectedPatient?.first_name,
+                    defaultValue: `Tap the + button to add something for ${selectedPatient?.first_name ?? t('patient') ?? 'this patient'}`,
+                  })}
                 </Text>
               </View>
-            )
+            ) : null
           }
         />
       )}
 
-      {/* ── Modal ── */}
       <CalendarEventModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSaved={(saved) => {
-          setModalVisible(false);
-          loadEvents();
+          setModalVisible(false)
+          loadEvents()
           if (saved?.start_datetime) {
-            setSelectedDate(new Date(saved.start_datetime));
+            setSelectedDate(new Date(saved.start_datetime))
           }
         }}
         onDeleted={() => {
-          setModalVisible(false);
-          loadEvents();
+          setModalVisible(false)
+          loadEvents()
         }}
         event={activeEvent}
         selectedDate={selectedDate}
         elderlyUserId={selectedPatient?.user_id}
-        currentUserId={currentUser?.id}
+        currentUserId={currentUser?.user_id}
         readOnly={false}
       />
     </SafeAreaView>
-  );
+  )
 }
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const CELL_SIZE = 44;
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F6FA' },
-
-  // Top bar
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 14,
-  },
-  screenTitle: { fontSize: 26, fontWeight: '800', color: '#1A1A2E' },
-  screenSub:   { fontSize: 13, color: '#9999AA', marginTop: 2, fontWeight: '500' },
-  addBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#3B5BDB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    shadowColor: '#3B5BDB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-
-  // Loading / empty
-  centerLoad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  noPatients: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 40, gap: 10, marginTop: 80,
-  },
-  noPatientsTitle: { fontSize: 17, fontWeight: '700', color: '#AAA' },
-  noPatientsText:  { fontSize: 13, color: '#C0C0C0', textAlign: 'center', lineHeight: 20 },
-
-  // Patient selector wrapper
-  selectorWrap: { marginBottom: 12 },
-
-  // Calendar card
-  calendarCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    marginHorizontal: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  monthNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  navBtn:     { padding: 4 },
-  monthLabel: { fontSize: 17, fontWeight: '700', color: '#1A1A2E' },
-  dayHeaderRow: { flexDirection: 'row', marginBottom: 4 },
-  dayHeader: {
-    flex: 1, textAlign: 'center', fontSize: 12,
-    fontWeight: '700', color: '#AAA', textTransform: 'uppercase',
-  },
-  grid:    { gap: 2 },
-  gridRow: { flexDirection: 'row' },
-  cell: {
-    flex: 1, height: CELL_SIZE, alignItems: 'center',
-    justifyContent: 'center', borderRadius: 10, position: 'relative',
-  },
-  cellSelected:     { backgroundColor: '#3B5BDB' },
-  cellToday:        { backgroundColor: '#EDF2FF' },
-  cellText:         { fontSize: 14, fontWeight: '500', color: '#333' },
-  cellTextSelected: { color: '#FFF', fontWeight: '700' },
-  cellTextToday:    { color: '#3B5BDB', fontWeight: '700' },
-  dotsRow: {
-    position: 'absolute', bottom: 5,
-    flexDirection: 'row', gap: 3,
-  },
-  eventDot: { width: 5, height: 5, borderRadius: 3 },
-
-  // Legend
-  legendRow: {
-    flexDirection: 'row', justifyContent: 'center',
-    gap: 20, marginTop: 12, marginBottom: 4,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendDot:  { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, color: '#888', fontWeight: '500' },
-
-  // Day section
-  dayTitleRow: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8,
-  },
-  dayTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A2E' },
-
-  // List
-  listContent: { paddingBottom: 40, paddingHorizontal: 16 },
-
-  // Empty
-  emptyState:    { alignItems: 'center', paddingTop: 36, gap: 8 },
-  emptyTitle:    { fontSize: 16, fontWeight: '600', color: '#AAA' },
-  emptySubtitle: { fontSize: 13, color: '#C0C0C0', textAlign: 'center' },
-});

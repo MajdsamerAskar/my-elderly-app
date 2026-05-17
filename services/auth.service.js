@@ -96,7 +96,8 @@ export async function getCurrentUser() {
 
   if (!sessionData.session) return null
 
-  const userId = sessionData.session.user.id
+  const authUser = sessionData.session.user
+  const userId = authUser.id
 
   const { data, error } = await supabase
     .from('users')
@@ -106,5 +107,9 @@ export async function getCurrentUser() {
 
   if (error) throw error
 
-  return data
+  return {
+    ...data,
+    email: data.email ?? authUser.email ?? null,
+    created_at: data.created_at ?? authUser.created_at ?? null,
+  }
 }
